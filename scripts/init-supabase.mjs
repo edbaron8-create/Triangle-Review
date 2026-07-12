@@ -32,10 +32,8 @@ if (buckets.some((b) => b.name === "uploads")) {
   console.log("✔ created public storage bucket 'uploads'");
 }
 
-// 2. Schema
-const { error: sErr } = await supabase
-  .from("users")
-  .select("id", { count: "exact", head: true });
+// 2. Schema (plain GET — HEAD requests can mask "table not found" errors)
+const { error: sErr } = await supabase.from("users").select("id").limit(1);
 if (sErr) {
   console.error("✘ schema missing:", sErr.message);
   console.error(
