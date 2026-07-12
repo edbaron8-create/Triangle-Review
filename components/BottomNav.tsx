@@ -6,9 +6,9 @@ import Avatar from "@/components/Avatar";
 import type { Triangler } from "@/lib/types";
 
 /** Instagram-style fixed bottom tab bar: Home, Explore, Post, Profile. */
-export default function BottomNav({ me }: { me: Triangler }) {
+export default function BottomNav({ me }: { me: Triangler | null }) {
   const pathname = usePathname();
-  const profileHref = `/profile/${me.handle}`;
+  const profileHref = me ? `/profile/${me.handle}` : "/login";
 
   const tabs = [
     {
@@ -71,17 +71,34 @@ export default function BottomNav({ me }: { me: Triangler }) {
         ))}
         <Link
           href={profileHref}
-          aria-label={`Your profile (@${me.handle})`}
+          aria-label={me ? `Your profile (@${me.handle})` : "Log in"}
           aria-current={pathname.startsWith(profileHref) ? "page" : undefined}
-          className="flex h-full flex-1 items-center justify-center"
+          className={`flex h-full flex-1 items-center justify-center ${
+            me ? "" : "text-gray-400 hover:text-gray-600"
+          }`}
         >
-          <span
-            className={`rounded-full ${
-              pathname.startsWith(profileHref) ? "ring-2 ring-army-700 ring-offset-1" : ""
-            }`}
-          >
-            <Avatar user={me} size="xs" />
-          </span>
+          {me ? (
+            <span
+              className={`rounded-full ${
+                pathname.startsWith(profileHref) ? "ring-2 ring-army-700 ring-offset-1" : ""
+              }`}
+            >
+              <Avatar user={me} size="xs" />
+            </span>
+          ) : (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-6 w-6"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5" />
+            </svg>
+          )}
         </Link>
       </div>
     </nav>

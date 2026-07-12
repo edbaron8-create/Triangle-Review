@@ -29,18 +29,21 @@ Triangles" and highlighted to everyone.
   3. **Council** — average of Council members' scores, /30.
   4. **Zealot** — the Zealot's verdict, /10.
   Computed by `scoreOf()` in `lib/data.ts`. Drives ranking.
-- **Triangle Council** — a chosen group of members, assigned on the backend
-  (`role: "council"` in `lib/data.ts` until an admin surface exists). ▲ badge.
-- **Triangle Zealot** — ONE member chosen on the backend (`role: "zealot"`).
-  ✦ badge. Scores every triangle with a single criteria-free number.
+- **Triangle Council** — a chosen group of members, assigned on the backend:
+  `npm run set-role -- <handle> council`. ▲ badge.
+- **Triangle Zealot** — ONE member chosen on the backend:
+  `npm run set-role -- <handle> zealot` (auto-demotes the previous Zealot).
+  ✦ badge. Scores triangles with a single criteria-free number.
 - **Top Triangles** — the highest-scoring Triangles, ranked on the Explore
   page and woven into feeds as suggestions.
 - **Feed** — a Triangler's home timeline: posts from people they follow,
   newest first, with top-scored Triangles from outside their circle
   interleaved as suggestions.
-- **Triangler** — a user of the app (submitter and/or reviewer). Until auth
-  lands, everyone browses as the mock signed-in user (`CURRENT_USER_ID` in
-  `lib/data.ts`).
+- **Triangler** — a registered user (submitter and/or reviewer). Accounts are
+  real: signup/login with scrypt-hashed passwords and session cookies. New
+  accounts are always `member`. The app is **login-first**: every page except
+  /login and /signup redirects logged-out visitors to the login page
+  (`requireUser()` in `lib/auth.ts`).
 
 ### Design language
 
@@ -55,38 +58,56 @@ surfaces. Content is a centered `max-w-md` column on all screens.
 - **Framework:** Next.js (App Router) — React Server Components by default.
 - **Language:** TypeScript (strict mode).
 - **Styling:** Tailwind CSS.
+- **Database:** Supabase Postgres via `@supabase/supabase-js` (PostgREST),
+  using the SECRET key server-side only. Schema in `supabase/schema.sql`;
+  RLS is enabled with no policies so the publishable key can't touch data.
+- **Auth:** hand-rolled sessions — scrypt password hashes (`lib/password.ts`),
+  opaque session tokens in Postgres, httpOnly cookie (`lib/auth.ts`).
+  Supabase Auth is NOT used.
+- **Uploads:** photos stored in the public `uploads` Supabase Storage bucket,
+  served from its CDN URLs.
 - **Runtime:** Node.js 20+.
 - **Package manager:** npm.
 
-> Data is currently served from in-memory mock fixtures (`lib/data.ts`). There
-> is no database, auth, or file upload yet — those are the first real features
-> to build (see "Roadmap").
+> Configuration: `SUPABASE_URL` + `SUPABASE_SECRET_KEY` env vars (in
+> `.env.local` locally — gitignored — and in the host's env settings when
+> deployed). One-time setup: run `supabase/schema.sql` in the Supabase SQL
+> Editor, then `npm run init-supabase` (creates the storage bucket and
+> verifies the schema). The database starts empty — no demo/seed content.
 
 ## Project structure
 
 ```
 app/                    Next.js App Router routes
   layout.tsx            Root layout (top search bar + bottom tab bar)
-  page.tsx              Home feed (following + suggested posts and users)
+  page.tsx              Home feed (following + suggested; Top Triangles when
+                        logged out)
   globals.css           Tailwind directives + base styles
   explore/              Top Triangles leaderboard grid (/100 ranking)
   search/               Search results (?q=) for triangles + Trianglers
   triangles/[id]/       Single triangle detail, score breakdown, score form
   profile/[handle]/     Profile: masthead + posted-triangles grid
     reviews/            Profile: triangles this user has scored
-  upload/               Placeholder until real photo uploads land
+  login/  signup/       Auth pages (server-action forms)
+  upload/               New-post form: photo, details, uploader score
 lib/
+  supabase.ts           Server-side Supabase client (secret key) + bucket name
+  auth.ts               Sessions: register, authenticate, getCurrentUser,
+                        requireUser (login-first redirect)
+  password.ts           scrypt hash/verify (no external deps)
+  data.ts               ALL data access (queries live here only); scoreOf()
+  actions.ts            Server actions (auth, post w/ photo upload, score,
+                        follow)
   types.ts              Shared domain types (Triangle, Review, Triangler, ...)
-  data.ts               Mock data + accessor helpers (swap for a DB later);
-                        roles are configured here; the mutable store lives on
-                        globalThis so server actions and routes share one
-                        instance in production
-  actions.ts            Server actions (submit/edit score, follow/unfollow)
   format.ts             Formatting helpers (timeAgo, formatScore)
 components/             Reusable UI (BottomNav, TriangleCard, TriangleTile,
-                        ScoreBadge, ScoreBreakdown, ReviewForm, Avatar,
-                        RoleBadge, ProfileHeader, TriangleImage = inline-SVG
-                        mock "photos", ...)
+                        ScoreBadge, ScoreBreakdown, ReviewForm, UploadForm,
+                        Avatar, RoleBadge, ProfileHeader, TrianglePhoto, ...)
+supabase/
+  schema.sql            Database schema — run once in the SQL Editor
+scripts/
+  set-role.mjs          Backend role management (council / zealot)
+  init-supabase.mjs     One-time setup: storage bucket + schema check
 public/                 Static assets
 ```
 
@@ -113,17 +134,18 @@ npm run dev       # start dev server at http://localhost:3000
 npm run build     # production build
 npm run start     # serve the production build
 npm run lint      # run ESLint
+npm run set-role -- <handle> <member|council|zealot>   # backend role admin
 ```
 
 ## Roadmap (next real features)
 
-1. **Persistence** — replace `lib/data.ts` fixtures with a real database
-   (e.g. Postgres via Prisma). Keep the same helper signatures.
-2. **Auth** — sign-in so Trianglers can post and review as themselves
-   (replaces the mock `CURRENT_USER_ID`).
-3. **Photo uploads** — real image storage (object store) instead of the
-   inline-SVG mock scenes in `TriangleImage`.
-4. **Ranking v2** — factor recency and score volume into Top Triangles,
+1. **Ranking v2** — factor recency and score volume into Top Triangles,
    not just the /100 total.
-5. **Role management** — an admin surface for choosing Council members and
-   the Zealot (today: `role` fields in `lib/data.ts`).
+2. **Admin surface** — in-app role management for the Council and Zealot
+   (today: `npm run set-role`).
+3. **Image pipeline** — resize/strip uploads server-side, re-enable the
+   Next.js image optimizer.
+4. **Notifications** — tell uploaders when the Council or the Zealot has
+   spoken.
+5. **Query tuning** — feed/explore load all triangles and rank in JS; move
+   scoring into SQL views once content volume justifies it.

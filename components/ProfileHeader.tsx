@@ -2,33 +2,35 @@ import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import RoleBadge from "@/components/RoleBadge";
+import { logOut } from "@/lib/actions";
+import { getCurrentUser } from "@/lib/auth";
 import {
-  getCurrentUser,
-  getFollowers,
-  getReviewsBy,
+  getFollowerCount,
+  getFollowingCount,
+  getReviewCountBy,
   getTrianglesBy,
+  isFollowing,
 } from "@/lib/data";
 import type { Triangler } from "@/lib/types";
 
 /** Mobile Instagram-style profile masthead + Posted/Scored tabs. */
-export default function ProfileHeader({
+export default async function ProfileHeader({
   user,
   activeTab,
 }: {
   user: Triangler;
   activeTab: "posted" | "reviewed";
 }) {
-  const me = getCurrentUser();
-  const isMe = me.id === user.id;
-  const posts = getTrianglesBy(user.id).length;
-  const reviews = getReviewsBy(user.id).length;
-  const followers = getFollowers(user.id).length;
+  const me = await getCurrentUser();
+  const isMe = me?.id === user.id;
+  const posts = (await getTrianglesBy(user.id)).length;
+  const reviews = await getReviewCountBy(user.id);
 
   const stats: Array<[number, string]> = [
     [posts, posts === 1 ? "triangle" : "triangles"],
     [reviews, reviews === 1 ? "score" : "scores"],
-    [followers, "followers"],
-    [user.following.length, "following"],
+    [await getFollowerCount(user.id), "followers"],
+    [await getFollowingCount(user.id), "following"],
   ];
 
   const tabBase =
@@ -57,7 +59,7 @@ export default function ProfileHeader({
 
         <div>
           <p className="text-sm font-semibold">{user.name}</p>
-          <p className="text-sm text-gray-600">{user.bio}</p>
+          {user.bio && <p className="text-sm text-gray-600">{user.bio}</p>}
           <p className="mt-1 text-xs text-gray-400">
             Triangling since{" "}
             {new Date(user.joined).toLocaleDateString("en-US", {
@@ -68,15 +70,27 @@ export default function ProfileHeader({
         </div>
 
         {isMe ? (
-          <p className="rounded-lg bg-gray-100 py-1.5 text-center text-xs font-semibold text-gray-500">
-            This is you (browsing as @{me.handle} until sign-in lands)
-          </p>
-        ) : (
+          <form action={logOut}>
+            <button
+              type="submit"
+              className="w-full rounded-lg bg-gray-100 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-200"
+            >
+              Log out (@{user.handle})
+            </button>
+          </form>
+        ) : me ? (
           <FollowButton
             targetId={user.id}
-            following={me.following.includes(user.id)}
+            following={await isFollowing(me.id, user.id)}
             block
           />
+        ) : (
+          <Link
+            href="/login"
+            className="block w-full rounded-lg bg-army-700 py-1.5 text-center text-xs font-semibold text-white transition hover:bg-army-800"
+          >
+            Log in to follow @{user.handle}
+          </Link>
         )}
       </header>
 

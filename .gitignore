@@ -11,6 +11,9 @@
 /.next/
 /out/
 
+# runtime data (SQLite db + uploaded photos)
+/data/
+
 # production
 /build
 

@@ -12,11 +12,18 @@ Explore page and get suggested in feeds.
 Mobile-first, Instagram-style UI: bottom tab bar, top search bar, army green
 and white.
 
+**This is a real app, not a mockup**: accounts with password login (scrypt +
+session cookies), photo uploads in Supabase Storage, and data in Supabase
+Postgres. The app is login-first — visitors land on the login page and sign
+up from there. Assign roles from the backend with
+`npm run set-role -- <handle> <member|council|zealot>`.
+
 ## Tech stack
 
 - [Next.js](https://nextjs.org/) (App Router)
 - TypeScript (strict)
 - Tailwind CSS
+- Supabase (Postgres + Storage) with hand-rolled session-cookie auth
 
 ## Getting started
 
@@ -35,15 +42,42 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `npm run build` | Production build                |
 | `npm run start` | Serve the production build      |
 | `npm run lint`  | Run ESLint                      |
+| `npm run set-role -- <handle> <role>` | Assign `member`/`council`/`zealot` |
+
+## Setup & deploying
+
+Data lives in a [Supabase](https://supabase.com) project (Postgres +
+Storage), so the app runs anywhere Next.js runs — including Vercel — with
+full persistence.
+
+Required environment variables (locally in `.env.local`, gitignored; on
+Vercel under Settings → Environment Variables):
+
+```
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
+```
+
+The secret key stays server-side only — never expose it as `NEXT_PUBLIC_`.
+
+One-time project setup:
+
+1. Run `supabase/schema.sql` in the Supabase **SQL Editor**
+   (Dashboard → SQL Editor → New query → paste → Run).
+2. `npm run init-supabase` — creates the public `uploads` storage bucket
+   and verifies the schema.
+
+Then `npm run dev` locally, or deploy to Vercel with the same env vars.
 
 ## Project layout
 
 ```
-app/          Routes (feed, explore, search, triangle detail, profiles, upload)
+app/          Routes (feed, explore, search, detail, profiles, auth, upload)
 components/   Reusable UI (BottomNav, TriangleCard, ScoreBreakdown, ...)
-lib/          Domain types, data access (mock fixtures + roles), server actions
+lib/          Domain types, SQLite data access, auth, server actions
+scripts/      Backend admin (set-role)
+data/         Runtime state, gitignored (SQLite db + uploaded photos)
 ```
 
-Data is served from in-memory mock fixtures in `lib/data.ts`. See
-[`CLAUDE.md`](./CLAUDE.md) for conventions and the roadmap toward real
-persistence, auth, and photo uploads.
+See [`CLAUDE.md`](./CLAUDE.md) for the scoring model, conventions, and the
+roadmap (hosted deploy, admin surface, image pipeline).

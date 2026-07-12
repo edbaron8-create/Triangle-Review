@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ProfileHeader from "@/components/ProfileHeader";
 import TriangleTile from "@/components/TriangleTile";
+import { requireUser } from "@/lib/auth";
 import { getTrianglerByHandle, getTrianglesBy } from "@/lib/data";
 
 export async function generateMetadata({
@@ -19,10 +20,11 @@ export default async function ProfilePage({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
-  const user = getTrianglerByHandle(handle);
+  await requireUser();
+  const user = await getTrianglerByHandle(handle);
   if (!user) notFound();
 
-  const posted = getTrianglesBy(user.id);
+  const posted = await getTrianglesBy(user.id);
 
   return (
     <div>

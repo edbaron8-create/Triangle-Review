@@ -7,9 +7,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "set-role": "node scripts/set-role.mjs",
+    "init-supabase": "node scripts/init-supabase.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.2",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

@@ -3,13 +3,13 @@ import Avatar from "@/components/Avatar";
 import RoleBadge from "@/components/RoleBadge";
 import ScoreBadge from "@/components/ScoreBadge";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
-import TriangleImage from "@/components/TriangleImage";
+import TrianglePhoto from "@/components/TrianglePhoto";
 import { getTrianglerById, reviewTotal, scoreOf } from "@/lib/data";
 import { formatScore, timeAgo } from "@/lib/format";
 import type { Triangle } from "@/lib/types";
 
 /** Instagram-style feed post for a single triangle (edge-to-edge on mobile). */
-export default function TriangleCard({
+export default async function TriangleCard({
   triangle,
   suggested = false,
 }: {
@@ -17,10 +17,10 @@ export default function TriangleCard({
   /** Shown when the post is in the feed because it's top-rated, not followed. */
   suggested?: boolean;
 }) {
-  const author = getTrianglerById(triangle.authorId);
-  const score = scoreOf(triangle);
+  const author = await getTrianglerById(triangle.authorId);
+  const score = await scoreOf(triangle);
   const latest = triangle.reviews[triangle.reviews.length - 1];
-  const latestAuthor = latest ? getTrianglerById(latest.authorId) : undefined;
+  const latestAuthor = latest ? await getTrianglerById(latest.authorId) : undefined;
 
   return (
     <article className="border-b border-gray-100 bg-white pb-4">
@@ -53,9 +53,9 @@ export default function TriangleCard({
       </header>
 
       <Link href={`/triangles/${triangle.id}`} aria-label={`View ${triangle.title}`}>
-        <TriangleImage
-          spec={triangle.image}
-          title={triangle.title}
+        <TrianglePhoto
+          src={triangle.imageUrl}
+          alt={triangle.title}
           className="aspect-square w-full"
         />
       </Link>

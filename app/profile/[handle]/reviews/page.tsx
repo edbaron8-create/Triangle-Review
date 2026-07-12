@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProfileHeader from "@/components/ProfileHeader";
-import TriangleImage from "@/components/TriangleImage";
+import TrianglePhoto from "@/components/TrianglePhoto";
+import { requireUser } from "@/lib/auth";
 import {
   getReviewsBy,
   getTrianglerByHandle,
@@ -27,10 +28,19 @@ export default async function ProfileReviewsPage({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
-  const user = getTrianglerByHandle(handle);
+  await requireUser();
+  const user = await getTrianglerByHandle(handle);
   if (!user) notFound();
 
-  const reviews = getReviewsBy(user.id);
+  const reviews = await getReviewsBy(user.id);
+  const posters = new Map(
+    await Promise.all(
+      reviews.map(
+        async ({ triangle }) =>
+          [triangle.authorId, await getTrianglerById(triangle.authorId)] as const,
+      ),
+    ),
+  );
 
   return (
     <div>
@@ -42,16 +52,17 @@ export default async function ProfileReviewsPage({
       ) : (
         <ul className="space-y-3 px-4 py-4">
           {reviews.map(({ review, triangle }) => {
-            const poster = getTrianglerById(triangle.authorId);
+            const poster = posters.get(triangle.authorId);
             return (
               <li
                 key={review.id}
                 className="flex gap-3 rounded-2xl border border-gray-200 p-3"
               >
                 <Link href={`/triangles/${triangle.id}`} className="shrink-0">
-                  <TriangleImage
-                    spec={triangle.image}
-                    title={triangle.title}
+                  <TrianglePhoto
+                    src={triangle.imageUrl}
+                    alt={triangle.title}
+                    sizes="80px"
                     className="h-20 w-20 rounded-lg"
                   />
                 </Link>

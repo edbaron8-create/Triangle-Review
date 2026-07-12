@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import TriangleTile from "@/components/TriangleTile";
+import { requireUser } from "@/lib/auth";
 import { getTopTriangles } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Explore · Triangle Reviewer",
 };
 
-export default function ExplorePage() {
-  const ranked = getTopTriangles();
+export default async function ExplorePage() {
+  await requireUser();
+  const ranked = await getTopTriangles();
 
   return (
     <div>
@@ -19,11 +22,21 @@ export default function ExplorePage() {
         </p>
       </header>
 
-      <div className="grid grid-cols-3 gap-0.5">
-        {ranked.map((triangle, i) => (
-          <TriangleTile key={triangle.id} triangle={triangle} rank={i + 1} />
-        ))}
-      </div>
+      {ranked.length === 0 ? (
+        <p className="mx-4 rounded-2xl border border-dashed border-gray-300 p-10 text-center text-sm text-gray-500">
+          Nothing to rank yet —{" "}
+          <Link href="/upload" className="font-semibold text-army-700 underline">
+            post the first triangle
+          </Link>
+          .
+        </p>
+      ) : (
+        <div className="grid grid-cols-3 gap-0.5">
+          {ranked.map((triangle, i) => (
+            <TriangleTile key={triangle.id} triangle={triangle} rank={i + 1} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

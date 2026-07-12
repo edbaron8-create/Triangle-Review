@@ -18,8 +18,6 @@ export interface Triangler {
   name: string;
   bio: string;
   role: TrianglerRole;
-  /** Ids of Trianglers this user follows. */
-  following: string[];
   /** Hue (0–360) used to render this user's deterministic avatar. */
   avatarHue: number;
   /** ISO date the user joined. */
@@ -51,6 +49,11 @@ interface ReviewBase {
   id: string;
   triangleId: string;
   authorId: string;
+  /**
+   * The author's role at hydration time, joined in by the data layer so
+   * scoring can bucket reviews without extra lookups.
+   */
+  authorRole?: TrianglerRole;
   comment: string;
   /** ISO datetime. */
   createdAt: string;
@@ -70,36 +73,14 @@ export interface ZealotReview extends ReviewBase {
 
 export type Review = AxesReview | ZealotReview;
 
-/** Scene identifiers for the mock SVG "photos" (real uploads land later). */
-export type TriangleScene =
-  | "mountain"
-  | "sign"
-  | "roof"
-  | "sandwich"
-  | "pyramid"
-  | "sail"
-  | "pizza"
-  | "tent"
-  | "chip"
-  | "stairs";
-
-/** Mock photo spec, rendered as an inline SVG until real uploads exist. */
-export interface TriangleImageSpec {
-  scene: TriangleScene;
-  /** Gradient background stops. */
-  from: string;
-  to: string;
-  /** Primary color of the triangle subject. */
-  accent: string;
-}
-
 /** A single user-submitted triangle post. */
 export interface Triangle {
   id: string;
   title: string;
   description: string;
   location: string;
-  image: TriangleImageSpec;
+  /** URL of the uploaded photo (served from /uploads/...). */
+  imageUrl: string;
   authorId: string;
   /** ISO datetime. */
   createdAt: string;

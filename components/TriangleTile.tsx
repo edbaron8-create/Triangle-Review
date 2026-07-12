@@ -1,11 +1,11 @@
 import Link from "next/link";
-import TriangleImage from "@/components/TriangleImage";
+import TrianglePhoto from "@/components/TrianglePhoto";
 import { scoreOf } from "@/lib/data";
 import { formatScore } from "@/lib/format";
 import type { Triangle } from "@/lib/types";
 
 /** Square grid tile (Explore, search, profile grids) with score overlay. */
-export default function TriangleTile({
+export default async function TriangleTile({
   triangle,
   rank,
 }: {
@@ -13,16 +13,17 @@ export default function TriangleTile({
   /** 1-based leaderboard rank; the top 3 get filled badges. */
   rank?: number;
 }) {
-  const score = scoreOf(triangle);
+  const score = await scoreOf(triangle);
 
   return (
     <Link
       href={`/triangles/${triangle.id}`}
       className="group relative block aspect-square overflow-hidden bg-gray-100"
     >
-      <TriangleImage
-        spec={triangle.image}
-        title={triangle.title}
+      <TrianglePhoto
+        src={triangle.imageUrl}
+        alt={triangle.title}
+        sizes="(max-width: 448px) 33vw, 150px"
         className="h-full w-full transition duration-300 group-hover:scale-105"
       />
       {rank !== undefined && (
