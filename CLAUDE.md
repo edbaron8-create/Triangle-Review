@@ -58,19 +58,22 @@ surfaces. Content is a centered `max-w-md` column on all screens.
 - **Framework:** Next.js (App Router) — React Server Components by default.
 - **Language:** TypeScript (strict mode).
 - **Styling:** Tailwind CSS.
-- **Database:** SQLite via `better-sqlite3` (synchronous, kept external to the
-  server bundle via `serverExternalPackages`).
+- **Database:** Supabase Postgres via `@supabase/supabase-js` (PostgREST),
+  using the SECRET key server-side only. Schema in `supabase/schema.sql`;
+  RLS is enabled with no policies so the publishable key can't touch data.
 - **Auth:** hand-rolled sessions — scrypt password hashes (`lib/password.ts`),
-  opaque session tokens in SQLite, httpOnly cookie (`lib/auth.ts`).
-- **Uploads:** photos saved to `data/uploads/`, served by
-  `app/uploads/[name]/route.ts`.
+  opaque session tokens in Postgres, httpOnly cookie (`lib/auth.ts`).
+  Supabase Auth is NOT used.
+- **Uploads:** photos stored in the public `uploads` Supabase Storage bucket,
+  served from its CDN URLs.
 - **Runtime:** Node.js 20+.
 - **Package manager:** npm.
 
-> Runtime state lives in `data/` (gitignored): `triangle.db` plus uploaded
-> photos. The database starts empty — no demo/seed content. Delete `data/`
-> for a factory reset. On serverless hosts (Vercel) data falls back to /tmp
-> and is ephemeral; see "Deploying" in the README.
+> Configuration: `SUPABASE_URL` + `SUPABASE_SECRET_KEY` env vars (in
+> `.env.local` locally — gitignored — and in the host's env settings when
+> deployed). One-time setup: run `supabase/schema.sql` in the Supabase SQL
+> Editor, then `npm run init-supabase` (creates the storage bucket and
+> verifies the schema). The database starts empty — no demo/seed content.
 
 ## Project structure
 
@@ -87,22 +90,24 @@ app/                    Next.js App Router routes
     reviews/            Profile: triangles this user has scored
   login/  signup/       Auth pages (server-action forms)
   upload/               New-post form: photo, details, uploader score
-  uploads/[name]/       Route handler serving uploaded photos from data/
 lib/
-  db.ts                 SQLite connection + schema
+  supabase.ts           Server-side Supabase client (secret key) + bucket name
   auth.ts               Sessions: register, authenticate, getCurrentUser,
                         requireUser (login-first redirect)
   password.ts           scrypt hash/verify (no external deps)
-  data.ts               ALL data access (SQL lives here only); scoreOf()
-  actions.ts            Server actions (auth, post, score, follow)
+  data.ts               ALL data access (queries live here only); scoreOf()
+  actions.ts            Server actions (auth, post w/ photo upload, score,
+                        follow)
   types.ts              Shared domain types (Triangle, Review, Triangler, ...)
   format.ts             Formatting helpers (timeAgo, formatScore)
 components/             Reusable UI (BottomNav, TriangleCard, TriangleTile,
                         ScoreBadge, ScoreBreakdown, ReviewForm, UploadForm,
                         Avatar, RoleBadge, ProfileHeader, TrianglePhoto, ...)
+supabase/
+  schema.sql            Database schema — run once in the SQL Editor
 scripts/
   set-role.mjs          Backend role management (council / zealot)
-data/                   Runtime state, gitignored (triangle.db + uploads/)
+  init-supabase.mjs     One-time setup: storage bucket + schema check
 public/                 Static assets
 ```
 
@@ -134,14 +139,13 @@ npm run set-role -- <handle> <member|council|zealot>   # backend role admin
 
 ## Roadmap (next real features)
 
-1. **Hosted deploy** — HTTPS (then set the session cookie `secure`), a
-   persistent volume or managed Postgres for `data/`, object storage for
-   photos.
-2. **Ranking v2** — factor recency and score volume into Top Triangles,
+1. **Ranking v2** — factor recency and score volume into Top Triangles,
    not just the /100 total.
-3. **Admin surface** — in-app role management for the Council and Zealot
+2. **Admin surface** — in-app role management for the Council and Zealot
    (today: `npm run set-role`).
-4. **Image pipeline** — resize/strip uploads server-side, re-enable the
+3. **Image pipeline** — resize/strip uploads server-side, re-enable the
    Next.js image optimizer.
-5. **Notifications** — tell uploaders when the Council or the Zealot has
+4. **Notifications** — tell uploaders when the Council or the Zealot has
    spoken.
+5. **Query tuning** — feed/explore load all triangles and rank in JS; move
+   scoring into SQL views once content volume justifies it.

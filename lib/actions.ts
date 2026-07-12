@@ -1,13 +1,11 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { writeFile } from "node:fs/promises";
-import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { authenticate, endSession, getCurrentUser, registerUser } from "@/lib/auth";
 import { createTriangle, setFollowing, upsertReview } from "@/lib/data";
-import { UPLOADS_DIR } from "@/lib/db";
+import { supabase, UPLOADS_BUCKET } from "@/lib/supabase";
 
 /* ------------------------------------------------------------------ */
 /* Auth                                                                */
@@ -71,17 +69,20 @@ export async function postTriangle(formData: FormData) {
   if (file.size > MAX_IMAGE_BYTES) fail("Photos are limited to 8 MB.");
 
   const filename = `${randomUUID()}${ext}`;
-  await writeFile(
-    path.join(UPLOADS_DIR, filename),
-    Buffer.from(await file.arrayBuffer()),
-  );
+  const upload = await supabase()
+    .storage.from(UPLOADS_BUCKET)
+    .upload(filename, Buffer.from(await file.arrayBuffer()), {
+      contentType: file.type,
+    });
+  if (upload.error) fail("Could not store the photo — please try again.");
+  const { data: pub } = supabase().storage.from(UPLOADS_BUCKET).getPublicUrl(filename);
 
   const num = (key: string) => Number(formData.get(key));
   const triangle = await createTriangle({
     title,
     description: String(formData.get("description") ?? ""),
     location: String(formData.get("location") ?? ""),
-    imageUrl: `/uploads/${filename}`,
+    imageUrl: pub.publicUrl,
     authorId: me.id,
     ratings: {
       aesthetic: num("aesthetic"),

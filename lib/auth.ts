@@ -1,15 +1,15 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
-import { hashPassword, verifyPassword } from "@/lib/password";
 import { rowToTriangler, type UserRow } from "@/lib/data";
+import { hashPassword, verifyPassword } from "@/lib/password";
+import { check, supabase } from "@/lib/supabase";
 import type { Triangler } from "@/lib/types";
 
 /**
- * Session-cookie auth. Sessions live in SQLite; the browser holds an opaque
- * httpOnly token. New accounts are always `member` — Council and Zealot are
- * assigned on the backend (`npm run set-role`).
+ * Session-cookie auth. Sessions live in Postgres; the browser holds an
+ * opaque httpOnly token. New accounts are always `member` — Council and
+ * Zealot are assigned on the backend (`npm run set-role`).
  */
 
 const COOKIE = "tr_session";
@@ -21,13 +21,15 @@ export const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 export async function getCurrentUser(): Promise<Triangler | null> {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
-  const row = db()
-    .prepare(
-      `SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id
-       WHERE s.token = ? AND s.expires_at > ?`,
-    )
-    .get(token, new Date().toISOString()) as UserRow | undefined;
-  return row ? rowToTriangler(row) : null;
+  const { data, error } = await supabase()
+    .from("sessions")
+    .select("expires_at, user:users!user_id(*)")
+    .eq("token", token)
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+  check(error);
+  const user = (data as { user: UserRow | null } | null)?.user;
+  return user ? rowToTriangler(user) : null;
 }
 
 /**
@@ -42,12 +44,15 @@ export async function requireUser(): Promise<Triangler> {
 
 async function startSession(userId: string) {
   const token = randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-  db()
-    .prepare("INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)")
-    .run(token, userId, expires.toISOString());
+  const now = new Date();
+  const expires = new Date(now.getTime() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+
+  const ins = await supabase()
+    .from("sessions")
+    .insert({ token, user_id: userId, expires_at: expires.toISOString() });
+  check(ins.error);
   // Opportunistic cleanup of expired sessions.
-  db().prepare("DELETE FROM sessions WHERE expires_at <= ?").run(new Date().toISOString());
+  await supabase().from("sessions").delete().lt("expires_at", now.toISOString());
 
   // Mark the cookie secure when the request arrived over HTTPS (hosted
   // deploys); plain-http localhost keeps working without it.
@@ -75,24 +80,22 @@ export async function registerUser(input: {
   if (!name) return "Please enter a display name.";
   if (input.password.length < 6) return "Passwords need at least 6 characters.";
 
-  const existing = db().prepare("SELECT id FROM users WHERE handle = ?").get(handle);
-  if (existing) return "That handle is taken.";
-
   const id = `u-${randomUUID()}`;
-  db()
-    .prepare(
-      `INSERT INTO users (id, handle, name, bio, role, avatar_hue, password_hash, joined)
-       VALUES (?, ?, ?, '', 'member', ?, ?, ?)`,
-    )
-    .run(
-      id,
-      handle,
-      name,
-      // Deterministic avatar hue from the handle.
-      [...handle].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7),
-      hashPassword(input.password),
-      new Date().toISOString().slice(0, 10),
-    );
+  const ins = await supabase().from("users").insert({
+    id,
+    handle,
+    name,
+    bio: "",
+    role: "member",
+    // Deterministic avatar hue from the handle.
+    avatar_hue: [...handle].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7),
+    password_hash: hashPassword(input.password),
+    joined: new Date().toISOString().slice(0, 10),
+  });
+  if (ins.error) {
+    if (ins.error.code === "23505") return "That handle is taken.";
+    check(ins.error);
+  }
   await startSession(id);
   return null;
 }
@@ -102,9 +105,13 @@ export async function authenticate(
   handle: string,
   password: string,
 ): Promise<string | null> {
-  const row = db()
-    .prepare("SELECT * FROM users WHERE handle = ?")
-    .get(handle.trim().toLowerCase()) as UserRow | undefined;
+  const { data, error } = await supabase()
+    .from("users")
+    .select("*")
+    .eq("handle", handle.trim().toLowerCase())
+    .maybeSingle();
+  check(error);
+  const row = data as UserRow | null;
   if (!row || !verifyPassword(password, row.password_hash)) {
     return "Wrong handle or password.";
   }
@@ -116,6 +123,8 @@ export async function authenticate(
 export async function endSession() {
   const store = await cookies();
   const token = store.get(COOKIE)?.value;
-  if (token) db().prepare("DELETE FROM sessions WHERE token = ?").run(token);
+  if (token) {
+    await supabase().from("sessions").delete().eq("token", token);
+  }
   store.delete(COOKIE);
 }

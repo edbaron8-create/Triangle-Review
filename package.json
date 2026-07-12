@@ -8,16 +8,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "set-role": "node scripts/set-role.mjs"
+    "set-role": "node scripts/set-role.mjs",
+    "init-supabase": "node scripts/init-supabase.mjs"
   },
   "dependencies": {
-    "better-sqlite3": "^12.11.1",
+    "@supabase/supabase-js": "^2.110.2",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.11.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

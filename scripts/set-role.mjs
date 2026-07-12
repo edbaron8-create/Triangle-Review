@@ -6,8 +6,8 @@
  * Promoting someone to zealot demotes the current Zealot to member — there
  * is only ever one Zealot.
  */
-import Database from "better-sqlite3";
-import path from "node:path";
+import { createClient } from "@supabase/supabase-js";
+import { requireSupabaseEnv } from "./env.mjs";
 
 const [handle, role] = process.argv.slice(2);
 const ROLES = ["member", "council", "zealot"];
@@ -17,23 +17,42 @@ if (!handle || !ROLES.includes(role)) {
   process.exit(1);
 }
 
-const dataDir = process.env.DATA_DIR ?? path.join(process.cwd(), "data");
-const db = new Database(path.join(dataDir, "triangle.db"));
+const { url, key } = requireSupabaseEnv();
+const supabase = createClient(url, key, { auth: { persistSession: false } });
 
-const user = db.prepare("SELECT id, handle, role FROM users WHERE handle = ?").get(handle);
+const { data: user, error } = await supabase
+  .from("users")
+  .select("id, handle, role")
+  .eq("handle", handle.toLowerCase())
+  .maybeSingle();
+if (error) {
+  console.error("Supabase:", error.message);
+  process.exit(1);
+}
 if (!user) {
   console.error(`No Triangler with handle "${handle}".`);
   process.exit(1);
 }
 
-db.transaction(() => {
-  if (role === "zealot") {
-    const demoted = db
-      .prepare("UPDATE users SET role = 'member' WHERE role = 'zealot' AND id != ?")
-      .run(user.id);
-    if (demoted.changes > 0) console.log("Previous Zealot demoted to member.");
+if (role === "zealot") {
+  const { data: demoted, error: dErr } = await supabase
+    .from("users")
+    .update({ role: "member" })
+    .eq("role", "zealot")
+    .neq("id", user.id)
+    .select("handle");
+  if (dErr) {
+    console.error("Supabase:", dErr.message);
+    process.exit(1);
   }
-  db.prepare("UPDATE users SET role = ? WHERE id = ?").run(role, user.id);
-})();
+  for (const d of demoted ?? []) {
+    console.log(`Previous Zealot @${d.handle} demoted to member.`);
+  }
+}
 
+const { error: uErr } = await supabase.from("users").update({ role }).eq("id", user.id);
+if (uErr) {
+  console.error("Supabase:", uErr.message);
+  process.exit(1);
+}
 console.log(`@${user.handle}: ${user.role} → ${role}`);

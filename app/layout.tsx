@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import { getCurrentUser } from "@/lib/auth";
-import { EPHEMERAL_DATA } from "@/lib/db";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,13 +24,6 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
-        {EPHEMERAL_DATA && (
-          <p className="bg-army-950 px-4 py-1.5 text-center text-[11px] font-medium text-army-100">
-            Demo deployment — accounts, posts, and photos reset periodically.
-            See the README for persistent hosting.
-          </p>
-        )}
-
         {me ? (
           <>
             {/* Top bar: logo + search */}

@@ -49,6 +49,11 @@ interface ReviewBase {
   id: string;
   triangleId: string;
   authorId: string;
+  /**
+   * The author's role at hydration time, joined in by the data layer so
+   * scoring can bucket reviews without extra lookups.
+   */
+  authorRole?: TrianglerRole;
   comment: string;
   /** ISO datetime. */
   createdAt: string;
