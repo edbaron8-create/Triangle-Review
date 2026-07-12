@@ -86,7 +86,10 @@ export async function registerUser(input: {
   });
   if (ins.error) {
     if (ins.error.code === "23505") return "That username is taken.";
-    check(ins.error);
+    // Surface the real cause (e.g. an un-migrated database) as a readable
+    // message instead of crashing the page into the error boundary.
+    console.error("registerUser insert failed:", ins.error);
+    return `Could not create your account: ${ins.error.message}`;
   }
   await startSession(id);
   return null;
