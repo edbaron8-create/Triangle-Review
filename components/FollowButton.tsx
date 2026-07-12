@@ -8,10 +8,13 @@ export default function FollowButton({
   targetId,
   following,
   size = "md",
+  block = false,
 }: {
   targetId: string;
   following: boolean;
   size?: "sm" | "md";
+  /** Full-width (profile page) variant. */
+  block?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -25,10 +28,10 @@ export default function FollowButton({
       type="button"
       disabled={pending}
       onClick={() => startTransition(() => toggleFollow(targetId))}
-      className={`${base} transition disabled:opacity-60 ${
+      className={`${base} ${block ? "w-full" : ""} transition disabled:opacity-60 ${
         following
           ? "bg-gray-100 text-gray-800 hover:bg-gray-200"
-          : "bg-sky-500 text-white hover:bg-sky-600"
+          : "bg-army-700 text-white hover:bg-army-800"
       }`}
     >
       {following ? "Following" : "Follow"}

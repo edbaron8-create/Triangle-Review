@@ -17,15 +17,22 @@ Triangles" and highlighted to everyone.
 
 - **Triangle** — a single user-submitted post: a photo of a real-world
   triangle, plus a title, description, and location.
-- **Review** — three ratings left on a Triangle, each 0–10: **Aesthetic
-  Quality**, **Tacticality**, and **Triangularity** (30 points max), plus an
-  optional written comment. One review per Triangler per Triangle; reviewing
-  again edits your review. The uploader may review their own post.
-- **Triangle Council** — a small set of distinguished Trianglers whose
-  reviews carry extra weight. Council members get a ▲ badge everywhere.
-- **Score** — a Triangle's aggregate rating: the weighted average of its
-  Reviews, out of 30. Weights: Council ×3, community ×1, uploader
-  self-review ×0.5. Drives ranking. Computed by `scoreOf()` in `lib/data.ts`.
+- **Review / Score (individual)** — a 30-point score on three axes, each
+  0–10: **Aesthetic Quality**, **Tacticality**, **Triangularity**, plus an
+  optional comment. One score per Triangler per Triangle; scoring again
+  edits it. The uploader scores their own post (that IS the Uploader
+  component). The Zealot instead files a single 0–10 verdict, no criteria.
+- **Score (aggregate)** — a Triangle's total out of **100**, the sum of four
+  components (pending components read as `null` and contribute 0):
+  1. **Uploader** — the uploader's own score, /30.
+  2. **Community** — average of regular members' scores, /30.
+  3. **Council** — average of Council members' scores, /30.
+  4. **Zealot** — the Zealot's verdict, /10.
+  Computed by `scoreOf()` in `lib/data.ts`. Drives ranking.
+- **Triangle Council** — a chosen group of members, assigned on the backend
+  (`role: "council"` in `lib/data.ts` until an admin surface exists). ▲ badge.
+- **Triangle Zealot** — ONE member chosen on the backend (`role: "zealot"`).
+  ✦ badge. Scores every triangle with a single criteria-free number.
 - **Top Triangles** — the highest-scoring Triangles, ranked on the Explore
   page and woven into feeds as suggestions.
 - **Feed** — a Triangler's home timeline: posts from people they follow,
@@ -34,6 +41,14 @@ Triangles" and highlighted to everyone.
 - **Triangler** — a user of the app (submitter and/or reviewer). Until auth
   lands, everyone browses as the mock signed-in user (`CURRENT_USER_ID` in
   `lib/data.ts`).
+
+### Design language
+
+Mobile-first, Instagram-style: fixed bottom tab bar (Home, Explore, Post,
+Profile), search bar in the top header, edge-to-edge feed cards, 3-column
+tile grids, no stories strip. Color scheme is **army green and white** — the
+`army` Tailwind ramp in `tailwind.config.ts` (DEFAULT ≈ #4b5320) on white
+surfaces. Content is a centered `max-w-md` column on all screens.
 
 ## Tech stack
 
@@ -51,24 +66,27 @@ Triangles" and highlighted to everyone.
 
 ```
 app/                    Next.js App Router routes
-  layout.tsx            Root layout (top nav, global chrome)
-  page.tsx              Home feed (following + suggested) + sidebar
+  layout.tsx            Root layout (top search bar + bottom tab bar)
+  page.tsx              Home feed (following + suggested posts and users)
   globals.css           Tailwind directives + base styles
-  explore/              Top Triangles leaderboard grid
-  triangles/[id]/       Single triangle detail, reviews, review form
+  explore/              Top Triangles leaderboard grid (/100 ranking)
+  search/               Search results (?q=) for triangles + Trianglers
+  triangles/[id]/       Single triangle detail, score breakdown, score form
   profile/[handle]/     Profile: masthead + posted-triangles grid
-    reviews/            Profile: triangles this user has reviewed
+    reviews/            Profile: triangles this user has scored
   upload/               Placeholder until real photo uploads land
 lib/
   types.ts              Shared domain types (Triangle, Review, Triangler, ...)
   data.ts               Mock data + accessor helpers (swap for a DB later);
-                        the mutable store lives on globalThis so server
-                        actions and routes share one instance in production
-  actions.ts            Server actions (submit/edit review, follow/unfollow)
+                        roles are configured here; the mutable store lives on
+                        globalThis so server actions and routes share one
+                        instance in production
+  actions.ts            Server actions (submit/edit score, follow/unfollow)
   format.ts             Formatting helpers (timeAgo, formatScore)
-components/             Reusable UI (TriangleCard, TriangleTile, ScoreBadge,
-                        RatingBreakdown, ReviewForm, Avatar, ProfileHeader,
-                        TriangleImage = inline-SVG mock "photos", ...)
+components/             Reusable UI (BottomNav, TriangleCard, TriangleTile,
+                        ScoreBadge, ScoreBreakdown, ReviewForm, Avatar,
+                        RoleBadge, ProfileHeader, TriangleImage = inline-SVG
+                        mock "photos", ...)
 public/                 Static assets
 ```
 
@@ -105,7 +123,7 @@ npm run lint      # run ESLint
    (replaces the mock `CURRENT_USER_ID`).
 3. **Photo uploads** — real image storage (object store) instead of the
    inline-SVG mock scenes in `TriangleImage`.
-4. **Ranking v2** — factor recency and review volume into Top Triangles,
-   not just weighted score.
-5. **Council management** — how Trianglers get promoted to (and removed
-   from) the Triangle Council.
+4. **Ranking v2** — factor recency and score volume into Top Triangles,
+   not just the /100 total.
+5. **Role management** — an admin surface for choosing Council members and
+   the Zealot (today: `role` fields in `lib/data.ts`).

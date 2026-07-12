@@ -25,14 +25,14 @@ export default async function ProfilePage({
   const posted = getTrianglesBy(user.id);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div>
       <ProfileHeader user={user} activeTab="posted" />
       {posted.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-500">
+        <p className="m-4 rounded-2xl border border-dashed border-gray-300 p-10 text-center text-sm text-gray-500">
           @{user.handle} hasn&apos;t posted a triangle yet.
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-3">
+        <div className="grid grid-cols-3 gap-0.5">
           {posted.map((triangle) => (
             <TriangleTile key={triangle.id} triangle={triangle} />
           ))}

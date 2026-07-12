@@ -1,14 +1,14 @@
 import Link from "next/link";
 import Avatar from "@/components/Avatar";
-import CouncilBadge from "@/components/CouncilBadge";
-import RatingBreakdown from "@/components/RatingBreakdown";
+import RoleBadge from "@/components/RoleBadge";
 import ScoreBadge from "@/components/ScoreBadge";
+import ScoreBreakdown from "@/components/ScoreBreakdown";
 import TriangleImage from "@/components/TriangleImage";
-import { getTrianglerById, scoreOf } from "@/lib/data";
+import { getTrianglerById, reviewTotal, scoreOf } from "@/lib/data";
 import { formatScore, timeAgo } from "@/lib/format";
 import type { Triangle } from "@/lib/types";
 
-/** Instagram-style feed post for a single triangle. */
+/** Instagram-style feed post for a single triangle (edge-to-edge on mobile). */
 export default function TriangleCard({
   triangle,
   suggested = false,
@@ -23,14 +23,14 @@ export default function TriangleCard({
   const latestAuthor = latest ? getTrianglerById(latest.authorId) : undefined;
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <article className="border-b border-gray-100 bg-white pb-4">
       {suggested && (
-        <p className="border-b border-amber-100 bg-amber-50 px-4 py-1.5 text-xs font-semibold text-amber-800">
+        <p className="bg-army-50 px-4 py-1.5 text-xs font-semibold text-army-800">
           ▲ Suggested — a Top Triangle from outside your circle
         </p>
       )}
 
-      <header className="flex items-center gap-3 px-4 py-3">
+      <header className="flex items-center gap-3 px-4 py-2.5">
         {author && (
           <Link href={`/profile/${author.handle}`} className="shrink-0">
             <Avatar user={author} size="sm" />
@@ -45,9 +45,9 @@ export default function TriangleCard({
             ) : (
               "unknown"
             )}
-            {author?.isCouncil && <CouncilBadge compact />}
+            {author && <RoleBadge role={author.role} compact />}
           </p>
-          <p className="truncate text-xs text-gray-500">📍 {triangle.location}</p>
+          <p className="truncate text-xs text-gray-500">{triangle.location}</p>
         </div>
         <span className="text-xs text-gray-400">{timeAgo(triangle.createdAt)}</span>
       </header>
@@ -56,22 +56,22 @@ export default function TriangleCard({
         <TriangleImage
           spec={triangle.image}
           title={triangle.title}
-          className="aspect-[4/3] w-full"
+          className="aspect-square w-full"
         />
       </Link>
 
-      <div className="space-y-3 px-4 py-3">
+      <div className="space-y-3 px-4 pt-3">
         <div className="flex items-center justify-between gap-3">
           <ScoreBadge score={score} />
           <Link
             href={`/triangles/${triangle.id}`}
-            className="rounded-full border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-amber-400 hover:text-amber-700"
+            className="rounded-full border border-army-300 px-3 py-1 text-xs font-semibold text-army-800 transition hover:bg-army-50"
           >
-            Rate this triangle
+            Score it
           </Link>
         </div>
 
-        {score.count > 0 && <RatingBreakdown axes={score.axes} compact />}
+        {score.count > 0 && <ScoreBreakdown score={score} compact />}
 
         <p className="text-sm text-gray-800">
           <span className="font-semibold">{author?.handle}</span>{" "}
@@ -82,7 +82,10 @@ export default function TriangleCard({
         {latest && latestAuthor && (
           <p className="truncate text-sm text-gray-500">
             <span className="font-semibold text-gray-700">{latestAuthor.handle}</span>{" "}
-            rated it {formatScore(sumRatings(latest.ratings))}/30 — “{latest.comment}”
+            {latest.kind === "zealot"
+              ? `verdict: ${formatScore(reviewTotal(latest))}/10`
+              : `scored it ${formatScore(reviewTotal(latest))}/30`}
+            {latest.comment && ` — “${latest.comment}”`}
           </p>
         )}
 
@@ -91,16 +94,10 @@ export default function TriangleCard({
           className="block text-sm text-gray-400 hover:text-gray-600"
         >
           {score.count === 0
-            ? "Be the first to review"
-            : `View all ${score.count} review${score.count === 1 ? "" : "s"}${
-                score.councilCount > 0 ? ` · ${score.councilCount} from the Council` : ""
-              }`}
+            ? "Be the first to score it"
+            : `View all ${score.count} score${score.count === 1 ? "" : "s"}`}
         </Link>
       </div>
     </article>
   );
-}
-
-function sumRatings(r: { aesthetic: number; tacticality: number; triangularity: number }) {
-  return r.aesthetic + r.tacticality + r.triangularity;
 }

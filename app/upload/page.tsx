@@ -8,20 +8,20 @@ export const metadata: Metadata = {
 /** Placeholder until real photo uploads land (see roadmap). */
 export default function UploadPage() {
   return (
-    <div className="mx-auto max-w-lg space-y-6 py-8 text-center">
-      <h1 className="text-2xl font-bold">Post a triangle</h1>
-      <div className="space-y-4 rounded-2xl border-2 border-dashed border-gray-300 bg-white p-12">
-        <p className="text-6xl" aria-hidden>▲</p>
-        <p className="font-semibold text-gray-700">Photo uploads are coming soon</p>
-        <p className="text-sm text-gray-500">
-          Soon you&apos;ll be able to photograph any sufficiently triangular thing —
-          rooftops, road signs, sandwiches, mountains — and submit it for the
-          community and the Triangle Council to judge.
+    <div className="space-y-5 px-4 py-8 text-center">
+      <h1 className="text-xl font-bold">Post a triangle</h1>
+      <div className="space-y-4 rounded-2xl border-2 border-dashed border-army-300 bg-army-50 p-10">
+        <p className="text-6xl text-army-700" aria-hidden>▲</p>
+        <p className="font-semibold text-army-900">Photo uploads are coming soon</p>
+        <p className="text-sm text-army-800/80">
+          Soon you&apos;ll photograph any sufficiently triangular thing — rooftops,
+          road signs, sandwiches, mountains — submit your Uploader score out of
+          30, and let the community, the Council, and the Zealot do the rest.
         </p>
       </div>
       <Link
         href="/explore"
-        className="inline-block rounded-lg bg-amber-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-amber-600"
+        className="inline-block rounded-lg bg-army-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-army-800"
       >
         Browse Top Triangles instead
       </Link>
