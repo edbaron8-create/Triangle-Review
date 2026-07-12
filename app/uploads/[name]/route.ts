@@ -11,13 +11,13 @@ const CONTENT_TYPES: Record<string, string> = {
   ".svg": "image/svg+xml",
 };
 
-/** Serve uploaded photos (and seeded demo images) from the data directory. */
+/** Serve uploaded photos from the data directory. */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ name: string }> },
 ) {
   const { name } = await params;
-  // Filenames are UUIDs/seed ids we generated; reject anything else.
+  // Filenames are UUIDs we generated; reject anything else.
   if (!/^[a-zA-Z0-9_-]+\.[a-z0-9]+$/.test(name)) {
     return new Response("Not found", { status: 404 });
   }

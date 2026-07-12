@@ -3,6 +3,7 @@ import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import RoleBadge from "@/components/RoleBadge";
 import TriangleTile from "@/components/TriangleTile";
+import { requireUser } from "@/lib/auth";
 import { search } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -14,6 +15,7 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
+  await requireUser();
   const { q = "" } = await searchParams;
   const query = q.trim();
   const results = search(query);

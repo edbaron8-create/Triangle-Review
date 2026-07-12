@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import UploadForm from "@/components/UploadForm";
-import { getCurrentUser } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Post a triangle · Triangle Reviewer",
@@ -12,8 +11,7 @@ export default async function UploadPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const me = await getCurrentUser();
-  if (!me) redirect("/login");
+  await requireUser();
   const { error } = await searchParams;
 
   return (

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logIn } from "@/lib/actions";
 import { getCurrentUser } from "@/lib/auth";
-import { DEMO_PASSWORD } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Log in · Triangle Reviewer",
@@ -58,13 +57,6 @@ export default async function LoginPage({
         <Link href="/signup" className="font-semibold text-army-700 hover:underline">
           Create an account
         </Link>
-      </p>
-
-      <p className="rounded-lg bg-gray-50 px-3 py-2 text-center text-xs text-gray-400">
-        Demo accounts: <span className="font-mono">acute_angie</span>,{" "}
-        <span className="font-mono">euclid_prime</span> (Council),{" "}
-        <span className="font-mono">hypotenuse_hana</span> (Zealot) — password{" "}
-        <span className="font-mono">{DEMO_PASSWORD}</span>
       </p>
     </div>
   );

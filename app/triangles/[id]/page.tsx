@@ -6,7 +6,7 @@ import ReviewForm from "@/components/ReviewForm";
 import ScoreBadge from "@/components/ScoreBadge";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
 import TrianglePhoto from "@/components/TrianglePhoto";
-import { getCurrentUser } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import {
   getTriangleById,
   getTrianglerById,
@@ -31,15 +31,13 @@ export default async function TrianglePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const me = await requireUser();
   const triangle = getTriangleById(id);
   if (!triangle) notFound();
 
   const author = getTrianglerById(triangle.authorId);
   const score = scoreOf(triangle);
-  const me = await getCurrentUser();
-  const myReview = me
-    ? triangle.reviews.find((r) => r.authorId === me.id)
-    : undefined;
+  const myReview = triangle.reviews.find((r) => r.authorId === me.id);
   const reviews = [...triangle.reviews].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),
   );
@@ -96,21 +94,12 @@ export default async function TrianglePage({
           </p>
         </section>
 
-        {me ? (
-          <ReviewForm
-            triangleId={triangle.id}
-            existing={myReview}
-            isUploader={triangle.authorId === me.id}
-            isZealot={me.role === "zealot"}
-          />
-        ) : (
-          <p className="rounded-2xl border border-gray-200 bg-army-50 p-4 text-center text-sm text-army-900">
-            <Link href="/login" className="font-semibold underline">
-              Log in
-            </Link>{" "}
-            to score this triangle.
-          </p>
-        )}
+        <ReviewForm
+          triangleId={triangle.id}
+          existing={myReview}
+          isUploader={triangle.authorId === me.id}
+          isZealot={me.role === "zealot"}
+        />
 
         <section className="space-y-3">
           <h2 className="text-base font-bold">

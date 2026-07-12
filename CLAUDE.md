@@ -41,8 +41,9 @@ Triangles" and highlighted to everyone.
   interleaved as suggestions.
 - **Triangler** — a registered user (submitter and/or reviewer). Accounts are
   real: signup/login with scrypt-hashed passwords and session cookies. New
-  accounts are always `member`. Logged-out visitors can browse and search but
-  not post, score, or follow.
+  accounts are always `member`. The app is **login-first**: every page except
+  /login and /signup redirects logged-out visitors to the login page
+  (`requireUser()` in `lib/auth.ts`).
 
 ### Design language
 
@@ -67,9 +68,9 @@ surfaces. Content is a centered `max-w-md` column on all screens.
 - **Package manager:** npm.
 
 > Runtime state lives in `data/` (gitignored): `triangle.db` plus uploaded
-> photos. On first run the DB self-seeds with 8 demo accounts (password:
-> `triangle`) and 10 demo triangles so every score component has data. Delete
-> `data/` for a factory reset.
+> photos. The database starts empty — no demo/seed content. Delete `data/`
+> for a factory reset. On serverless hosts (Vercel) data falls back to /tmp
+> and is ephemeral; see "Deploying" in the README.
 
 ## Project structure
 
@@ -88,12 +89,12 @@ app/                    Next.js App Router routes
   upload/               New-post form: photo, details, uploader score
   uploads/[name]/       Route handler serving uploaded photos from data/
 lib/
-  db.ts                 SQLite connection, schema, first-run demo seed
-  auth.ts               Sessions: register, authenticate, getCurrentUser
+  db.ts                 SQLite connection + schema
+  auth.ts               Sessions: register, authenticate, getCurrentUser,
+                        requireUser (login-first redirect)
   password.ts           scrypt hash/verify (no external deps)
   data.ts               ALL data access (SQL lives here only); scoreOf()
   actions.ts            Server actions (auth, post, score, follow)
-  seedSvgs.ts           SVG generators for the seeded demo images
   types.ts              Shared domain types (Triangle, Review, Triangler, ...)
   format.ts             Formatting helpers (timeAgo, formatScore)
 components/             Reusable UI (BottomNav, TriangleCard, TriangleTile,

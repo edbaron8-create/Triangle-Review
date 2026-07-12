@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProfileHeader from "@/components/ProfileHeader";
 import TrianglePhoto from "@/components/TrianglePhoto";
+import { requireUser } from "@/lib/auth";
 import {
   getReviewsBy,
   getTrianglerByHandle,
@@ -27,6 +28,7 @@ export default async function ProfileReviewsPage({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
+  await requireUser();
   const user = getTrianglerByHandle(handle);
   if (!user) notFound();
 

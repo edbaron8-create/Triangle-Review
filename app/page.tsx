@@ -2,20 +2,31 @@ import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import TriangleCard from "@/components/TriangleCard";
-import { getCurrentUser } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { getFeedFor, getSuggestedTrianglers } from "@/lib/data";
 import type { FeedItem } from "@/lib/types";
 
 export default async function HomePage() {
-  const me = await getCurrentUser();
-  const feed = getFeedFor(me?.id ?? null);
-  const suggested = me ? getSuggestedTrianglers(me.id) : [];
+  const me = await requireUser();
+  const feed = getFeedFor(me.id);
+  const suggested = getSuggestedTrianglers(me.id);
 
   if (feed.length === 0) {
     return (
-      <p className="m-4 rounded-2xl border border-dashed border-gray-300 p-10 text-center text-gray-500">
-        Your feed is empty — follow some Trianglers to fill it with triangles.
-      </p>
+      <div className="space-y-4 px-4 py-10 text-center">
+        <p className="text-5xl text-army-700" aria-hidden>▲</p>
+        <h1 className="text-lg font-bold">No triangles yet</h1>
+        <p className="text-sm text-gray-500">
+          Every feed starts somewhere. Post the first triangle and set the
+          standard.
+        </p>
+        <Link
+          href="/upload"
+          className="inline-block rounded-lg bg-army-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-army-800"
+        >
+          Post a triangle
+        </Link>
+      </div>
     );
   }
 
@@ -23,70 +34,48 @@ export default async function HomePage() {
   const before: FeedItem[] = feed.slice(0, 2);
   const after: FeedItem[] = feed.slice(2);
 
+  const suggestedRow = suggested.length > 0 && (
+    <section className="border-b border-gray-100 px-4 py-4">
+      <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">
+        Suggested Trianglers
+      </h2>
+      <div className="no-scrollbar flex gap-3 overflow-x-auto">
+        {suggested.map((user) => (
+          <div
+            key={user.id}
+            className="flex w-32 shrink-0 flex-col items-center gap-2 rounded-2xl border border-gray-200 p-4"
+          >
+            <Link href={`/profile/${user.handle}`}>
+              <Avatar user={user} size="lg" />
+            </Link>
+            <Link
+              href={`/profile/${user.handle}`}
+              className="w-full truncate text-center text-xs font-semibold hover:underline"
+            >
+              {user.handle}
+            </Link>
+            <p className="w-full truncate text-center text-[11px] text-gray-500">
+              {user.role === "council"
+                ? "Triangle Council"
+                : user.role === "zealot"
+                  ? "The Zealot"
+                  : user.name}
+            </p>
+            <FollowButton targetId={user.id} following={false} size="sm" />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+
   return (
     <div>
-      {!me && (
-        <section className="border-b border-gray-100 bg-army-50 px-4 py-4 text-center">
-          <p className="text-sm font-semibold text-army-900">
-            The world&apos;s triangles, scored out of 100.
-          </p>
-          <p className="mt-1 text-xs text-army-800/80">
-            <Link href="/signup" className="font-semibold underline">
-              Create an account
-            </Link>{" "}
-            to post your finds and score everyone else&apos;s.
-          </p>
-        </section>
-      )}
-
       {before.map(({ triangle, reason }) => (
-        <TriangleCard
-          key={triangle.id}
-          triangle={triangle}
-          suggested={me !== null && reason === "top"}
-        />
+        <TriangleCard key={triangle.id} triangle={triangle} suggested={reason === "top"} />
       ))}
-
-      {suggested.length > 0 && (
-        <section className="border-b border-gray-100 px-4 py-4">
-          <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">
-            Suggested Trianglers
-          </h2>
-          <div className="no-scrollbar flex gap-3 overflow-x-auto">
-            {suggested.map((user) => (
-              <div
-                key={user.id}
-                className="flex w-32 shrink-0 flex-col items-center gap-2 rounded-2xl border border-gray-200 p-4"
-              >
-                <Link href={`/profile/${user.handle}`}>
-                  <Avatar user={user} size="lg" />
-                </Link>
-                <Link
-                  href={`/profile/${user.handle}`}
-                  className="w-full truncate text-center text-xs font-semibold hover:underline"
-                >
-                  {user.handle}
-                </Link>
-                <p className="w-full truncate text-center text-[11px] text-gray-500">
-                  {user.role === "council"
-                    ? "Triangle Council"
-                    : user.role === "zealot"
-                      ? "The Zealot"
-                      : user.name}
-                </p>
-                <FollowButton targetId={user.id} following={false} size="sm" />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
+      {suggestedRow}
       {after.map(({ triangle, reason }) => (
-        <TriangleCard
-          key={triangle.id}
-          triangle={triangle}
-          suggested={me !== null && reason === "top"}
-        />
+        <TriangleCard key={triangle.id} triangle={triangle} suggested={reason === "top"} />
       ))}
     </div>
   );

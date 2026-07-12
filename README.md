@@ -13,9 +13,9 @@ Mobile-first, Instagram-style UI: bottom tab bar, top search bar, army green
 and white.
 
 **This is a real app, not a mockup**: accounts with password login (scrypt +
-session cookies), photo uploads saved to disk, and a SQLite database. On first
-run it seeds 8 demo accounts (password `triangle`) and 10 demo triangles;
-delete `data/` for a factory reset. Assign roles from the backend with
+session cookies), photo uploads saved to disk, and a SQLite database that
+starts empty. The app is login-first — visitors land on the login page and
+sign up from there. Assign roles from the backend with
 `npm run set-role -- <handle> <member|council|zealot>`.
 
 ## Tech stack

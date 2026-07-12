@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { rowToTriangler, type UserRow } from "@/lib/data";
@@ -27,6 +28,16 @@ export async function getCurrentUser(): Promise<Triangler | null> {
     )
     .get(token, new Date().toISOString()) as UserRow | undefined;
   return row ? rowToTriangler(row) : null;
+}
+
+/**
+ * The app is login-first: every page except /login and /signup calls this
+ * and bounces logged-out visitors to the login page.
+ */
+export async function requireUser(): Promise<Triangler> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  return user;
 }
 
 async function startSession(userId: string) {
