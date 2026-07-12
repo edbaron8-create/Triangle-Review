@@ -2,17 +2,14 @@ import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import TriangleCard from "@/components/TriangleCard";
-import {
-  getCurrentUser,
-  getFeedFor,
-  getSuggestedTrianglers,
-} from "@/lib/data";
+import { getCurrentUser } from "@/lib/auth";
+import { getFeedFor, getSuggestedTrianglers } from "@/lib/data";
 import type { FeedItem } from "@/lib/types";
 
-export default function HomePage() {
-  const me = getCurrentUser();
-  const feed = getFeedFor(me.id);
-  const suggested = getSuggestedTrianglers(me.id);
+export default async function HomePage() {
+  const me = await getCurrentUser();
+  const feed = getFeedFor(me?.id ?? null);
+  const suggested = me ? getSuggestedTrianglers(me.id) : [];
 
   if (feed.length === 0) {
     return (
@@ -28,8 +25,26 @@ export default function HomePage() {
 
   return (
     <div>
+      {!me && (
+        <section className="border-b border-gray-100 bg-army-50 px-4 py-4 text-center">
+          <p className="text-sm font-semibold text-army-900">
+            The world&apos;s triangles, scored out of 100.
+          </p>
+          <p className="mt-1 text-xs text-army-800/80">
+            <Link href="/signup" className="font-semibold underline">
+              Create an account
+            </Link>{" "}
+            to post your finds and score everyone else&apos;s.
+          </p>
+        </section>
+      )}
+
       {before.map(({ triangle, reason }) => (
-        <TriangleCard key={triangle.id} triangle={triangle} suggested={reason === "top"} />
+        <TriangleCard
+          key={triangle.id}
+          triangle={triangle}
+          suggested={me !== null && reason === "top"}
+        />
       ))}
 
       {suggested.length > 0 && (
@@ -67,7 +82,11 @@ export default function HomePage() {
       )}
 
       {after.map(({ triangle, reason }) => (
-        <TriangleCard key={triangle.id} triangle={triangle} suggested={reason === "top"} />
+        <TriangleCard
+          key={triangle.id}
+          triangle={triangle}
+          suggested={me !== null && reason === "top"}
+        />
       ))}
     </div>
   );

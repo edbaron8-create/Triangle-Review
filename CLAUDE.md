@@ -29,18 +29,20 @@ Triangles" and highlighted to everyone.
   3. **Council** — average of Council members' scores, /30.
   4. **Zealot** — the Zealot's verdict, /10.
   Computed by `scoreOf()` in `lib/data.ts`. Drives ranking.
-- **Triangle Council** — a chosen group of members, assigned on the backend
-  (`role: "council"` in `lib/data.ts` until an admin surface exists). ▲ badge.
-- **Triangle Zealot** — ONE member chosen on the backend (`role: "zealot"`).
-  ✦ badge. Scores every triangle with a single criteria-free number.
+- **Triangle Council** — a chosen group of members, assigned on the backend:
+  `npm run set-role -- <handle> council`. ▲ badge.
+- **Triangle Zealot** — ONE member chosen on the backend:
+  `npm run set-role -- <handle> zealot` (auto-demotes the previous Zealot).
+  ✦ badge. Scores triangles with a single criteria-free number.
 - **Top Triangles** — the highest-scoring Triangles, ranked on the Explore
   page and woven into feeds as suggestions.
 - **Feed** — a Triangler's home timeline: posts from people they follow,
   newest first, with top-scored Triangles from outside their circle
   interleaved as suggestions.
-- **Triangler** — a user of the app (submitter and/or reviewer). Until auth
-  lands, everyone browses as the mock signed-in user (`CURRENT_USER_ID` in
-  `lib/data.ts`).
+- **Triangler** — a registered user (submitter and/or reviewer). Accounts are
+  real: signup/login with scrypt-hashed passwords and session cookies. New
+  accounts are always `member`. Logged-out visitors can browse and search but
+  not post, score, or follow.
 
 ### Design language
 
@@ -55,38 +57,51 @@ surfaces. Content is a centered `max-w-md` column on all screens.
 - **Framework:** Next.js (App Router) — React Server Components by default.
 - **Language:** TypeScript (strict mode).
 - **Styling:** Tailwind CSS.
+- **Database:** SQLite via `better-sqlite3` (synchronous, kept external to the
+  server bundle via `serverExternalPackages`).
+- **Auth:** hand-rolled sessions — scrypt password hashes (`lib/password.ts`),
+  opaque session tokens in SQLite, httpOnly cookie (`lib/auth.ts`).
+- **Uploads:** photos saved to `data/uploads/`, served by
+  `app/uploads/[name]/route.ts`.
 - **Runtime:** Node.js 20+.
 - **Package manager:** npm.
 
-> Data is currently served from in-memory mock fixtures (`lib/data.ts`). There
-> is no database, auth, or file upload yet — those are the first real features
-> to build (see "Roadmap").
+> Runtime state lives in `data/` (gitignored): `triangle.db` plus uploaded
+> photos. On first run the DB self-seeds with 8 demo accounts (password:
+> `triangle`) and 10 demo triangles so every score component has data. Delete
+> `data/` for a factory reset.
 
 ## Project structure
 
 ```
 app/                    Next.js App Router routes
   layout.tsx            Root layout (top search bar + bottom tab bar)
-  page.tsx              Home feed (following + suggested posts and users)
+  page.tsx              Home feed (following + suggested; Top Triangles when
+                        logged out)
   globals.css           Tailwind directives + base styles
   explore/              Top Triangles leaderboard grid (/100 ranking)
   search/               Search results (?q=) for triangles + Trianglers
   triangles/[id]/       Single triangle detail, score breakdown, score form
   profile/[handle]/     Profile: masthead + posted-triangles grid
     reviews/            Profile: triangles this user has scored
-  upload/               Placeholder until real photo uploads land
+  login/  signup/       Auth pages (server-action forms)
+  upload/               New-post form: photo, details, uploader score
+  uploads/[name]/       Route handler serving uploaded photos from data/
 lib/
+  db.ts                 SQLite connection, schema, first-run demo seed
+  auth.ts               Sessions: register, authenticate, getCurrentUser
+  password.ts           scrypt hash/verify (no external deps)
+  data.ts               ALL data access (SQL lives here only); scoreOf()
+  actions.ts            Server actions (auth, post, score, follow)
+  seedSvgs.ts           SVG generators for the seeded demo images
   types.ts              Shared domain types (Triangle, Review, Triangler, ...)
-  data.ts               Mock data + accessor helpers (swap for a DB later);
-                        roles are configured here; the mutable store lives on
-                        globalThis so server actions and routes share one
-                        instance in production
-  actions.ts            Server actions (submit/edit score, follow/unfollow)
   format.ts             Formatting helpers (timeAgo, formatScore)
 components/             Reusable UI (BottomNav, TriangleCard, TriangleTile,
-                        ScoreBadge, ScoreBreakdown, ReviewForm, Avatar,
-                        RoleBadge, ProfileHeader, TriangleImage = inline-SVG
-                        mock "photos", ...)
+                        ScoreBadge, ScoreBreakdown, ReviewForm, UploadForm,
+                        Avatar, RoleBadge, ProfileHeader, TrianglePhoto, ...)
+scripts/
+  set-role.mjs          Backend role management (council / zealot)
+data/                   Runtime state, gitignored (triangle.db + uploads/)
 public/                 Static assets
 ```
 
@@ -113,17 +128,19 @@ npm run dev       # start dev server at http://localhost:3000
 npm run build     # production build
 npm run start     # serve the production build
 npm run lint      # run ESLint
+npm run set-role -- <handle> <member|council|zealot>   # backend role admin
 ```
 
 ## Roadmap (next real features)
 
-1. **Persistence** — replace `lib/data.ts` fixtures with a real database
-   (e.g. Postgres via Prisma). Keep the same helper signatures.
-2. **Auth** — sign-in so Trianglers can post and review as themselves
-   (replaces the mock `CURRENT_USER_ID`).
-3. **Photo uploads** — real image storage (object store) instead of the
-   inline-SVG mock scenes in `TriangleImage`.
-4. **Ranking v2** — factor recency and score volume into Top Triangles,
+1. **Hosted deploy** — HTTPS (then set the session cookie `secure`), a
+   persistent volume or managed Postgres for `data/`, object storage for
+   photos.
+2. **Ranking v2** — factor recency and score volume into Top Triangles,
    not just the /100 total.
-5. **Role management** — an admin surface for choosing Council members and
-   the Zealot (today: `role` fields in `lib/data.ts`).
+3. **Admin surface** — in-app role management for the Council and Zealot
+   (today: `npm run set-role`).
+4. **Image pipeline** — resize/strip uploads server-side, re-enable the
+   Next.js image optimizer.
+5. **Notifications** — tell uploaders when the Council or the Zealot has
+   spoken.

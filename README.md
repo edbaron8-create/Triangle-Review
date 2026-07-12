@@ -12,6 +12,12 @@ Explore page and get suggested in feeds.
 Mobile-first, Instagram-style UI: bottom tab bar, top search bar, army green
 and white.
 
+**This is a real app, not a mockup**: accounts with password login (scrypt +
+session cookies), photo uploads saved to disk, and a SQLite database. On first
+run it seeds 8 demo accounts (password `triangle`) and 10 demo triangles;
+delete `data/` for a factory reset. Assign roles from the backend with
+`npm run set-role -- <handle> <member|council|zealot>`.
+
 ## Tech stack
 
 - [Next.js](https://nextjs.org/) (App Router)
@@ -39,11 +45,12 @@ Then open [http://localhost:3000](http://localhost:3000).
 ## Project layout
 
 ```
-app/          Routes (feed, explore, search, triangle detail, profiles, upload)
+app/          Routes (feed, explore, search, detail, profiles, auth, upload)
 components/   Reusable UI (BottomNav, TriangleCard, ScoreBreakdown, ...)
-lib/          Domain types, data access (mock fixtures + roles), server actions
+lib/          Domain types, SQLite data access, auth, server actions
+scripts/      Backend admin (set-role)
+data/         Runtime state, gitignored (SQLite db + uploaded photos)
 ```
 
-Data is served from in-memory mock fixtures in `lib/data.ts`. See
-[`CLAUDE.md`](./CLAUDE.md) for conventions and the roadmap toward real
-persistence, auth, and photo uploads.
+See [`CLAUDE.md`](./CLAUDE.md) for the scoring model, conventions, and the
+roadmap (hosted deploy, admin surface, image pipeline).

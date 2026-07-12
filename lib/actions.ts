@@ -1,19 +1,111 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+import { writeFile } from "node:fs/promises";
+import path from "node:path";
 import { revalidatePath } from "next/cache";
-import { CURRENT_USER_ID, setFollowing, upsertReview } from "@/lib/data";
+import { redirect } from "next/navigation";
+import { authenticate, endSession, getCurrentUser, registerUser } from "@/lib/auth";
+import { createTriangle, setFollowing, upsertReview } from "@/lib/data";
+import { UPLOADS_DIR } from "@/lib/db";
 
-/**
- * Server actions for the write paths. They mutate the in-memory mock data,
- * so changes live for the duration of the server process — good enough
- * for a first draft, swapped for real persistence later.
- */
+/* ------------------------------------------------------------------ */
+/* Auth                                                                */
+/* ------------------------------------------------------------------ */
+
+export async function signUp(formData: FormData) {
+  const error = await registerUser({
+    handle: String(formData.get("handle") ?? ""),
+    name: String(formData.get("name") ?? ""),
+    password: String(formData.get("password") ?? ""),
+  });
+  if (error) redirect(`/signup?error=${encodeURIComponent(error)}`);
+  revalidatePath("/", "layout");
+  redirect("/");
+}
+
+export async function logIn(formData: FormData) {
+  const error = await authenticate(
+    String(formData.get("handle") ?? ""),
+    String(formData.get("password") ?? ""),
+  );
+  if (error) redirect(`/login?error=${encodeURIComponent(error)}`);
+  revalidatePath("/", "layout");
+  redirect("/");
+}
+
+export async function logOut() {
+  await endSession();
+  revalidatePath("/", "layout");
+  redirect("/");
+}
+
+/* ------------------------------------------------------------------ */
+/* Posting                                                             */
+/* ------------------------------------------------------------------ */
+
+const IMAGE_TYPES: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/gif": ".gif",
+};
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+
+/** Create a triangle post: save the photo, insert the post + uploader score. */
+export async function postTriangle(formData: FormData) {
+  const me = await getCurrentUser();
+  if (!me) redirect("/login");
+
+  const fail = (message: string) =>
+    redirect(`/upload?error=${encodeURIComponent(message)}`);
+
+  const photo = formData.get("photo");
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) fail("Give your triangle a title.");
+  if (!(photo instanceof File) || photo.size === 0) fail("Choose a photo to upload.");
+
+  const file = photo as File;
+  const ext = IMAGE_TYPES[file.type];
+  if (!ext) fail("Photos must be JPEG, PNG, WebP, or GIF.");
+  if (file.size > MAX_IMAGE_BYTES) fail("Photos are limited to 8 MB.");
+
+  const filename = `${randomUUID()}${ext}`;
+  await writeFile(
+    path.join(UPLOADS_DIR, filename),
+    Buffer.from(await file.arrayBuffer()),
+  );
+
+  const num = (key: string) => Number(formData.get(key));
+  const triangle = createTriangle({
+    title,
+    description: String(formData.get("description") ?? ""),
+    location: String(formData.get("location") ?? ""),
+    imageUrl: `/uploads/${filename}`,
+    authorId: me.id,
+    ratings: {
+      aesthetic: num("aesthetic"),
+      tacticality: num("tacticality"),
+      triangularity: num("triangularity"),
+    },
+    comment: String(formData.get("comment") ?? ""),
+  });
+
+  revalidatePath("/", "layout");
+  redirect(`/triangles/${triangle.id}`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Scoring + following                                                 */
+/* ------------------------------------------------------------------ */
 
 /** Submit (or update) the signed-in user's score for a triangle. */
 export async function submitReview(triangleId: string, formData: FormData) {
-  const num = (key: string) => Number(formData.get(key));
+  const me = await getCurrentUser();
+  if (!me) redirect("/login");
 
-  upsertReview(triangleId, CURRENT_USER_ID, {
+  const num = (key: string) => Number(formData.get(key));
+  upsertReview(triangleId, me.id, {
     ratings: {
       aesthetic: num("aesthetic"),
       tacticality: num("tacticality"),
@@ -29,6 +121,8 @@ export async function submitReview(triangleId: string, formData: FormData) {
 
 /** Toggle whether the signed-in user follows another Triangler. */
 export async function toggleFollow(targetId: string) {
-  setFollowing(CURRENT_USER_ID, targetId);
+  const me = await getCurrentUser();
+  if (!me) redirect("/login");
+  setFollowing(me.id, targetId);
   revalidatePath("/", "layout");
 }

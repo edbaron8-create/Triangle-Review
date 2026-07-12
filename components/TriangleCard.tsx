@@ -3,7 +3,7 @@ import Avatar from "@/components/Avatar";
 import RoleBadge from "@/components/RoleBadge";
 import ScoreBadge from "@/components/ScoreBadge";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
-import TriangleImage from "@/components/TriangleImage";
+import TrianglePhoto from "@/components/TrianglePhoto";
 import { getTrianglerById, reviewTotal, scoreOf } from "@/lib/data";
 import { formatScore, timeAgo } from "@/lib/format";
 import type { Triangle } from "@/lib/types";
@@ -53,9 +53,9 @@ export default function TriangleCard({
       </header>
 
       <Link href={`/triangles/${triangle.id}`} aria-label={`View ${triangle.title}`}>
-        <TriangleImage
-          spec={triangle.image}
-          title={triangle.title}
+        <TrianglePhoto
+          src={triangle.imageUrl}
+          alt={triangle.title}
           className="aspect-square w-full"
         />
       </Link>

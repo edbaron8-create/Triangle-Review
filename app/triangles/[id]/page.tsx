@@ -5,10 +5,9 @@ import RoleBadge from "@/components/RoleBadge";
 import ReviewForm from "@/components/ReviewForm";
 import ScoreBadge from "@/components/ScoreBadge";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
-import TriangleImage from "@/components/TriangleImage";
+import TrianglePhoto from "@/components/TrianglePhoto";
+import { getCurrentUser } from "@/lib/auth";
 import {
-  CURRENT_USER_ID,
-  getCurrentUser,
   getTriangleById,
   getTrianglerById,
   reviewTotal,
@@ -37,8 +36,10 @@ export default async function TrianglePage({
 
   const author = getTrianglerById(triangle.authorId);
   const score = scoreOf(triangle);
-  const me = getCurrentUser();
-  const myReview = triangle.reviews.find((r) => r.authorId === CURRENT_USER_ID);
+  const me = await getCurrentUser();
+  const myReview = me
+    ? triangle.reviews.find((r) => r.authorId === me.id)
+    : undefined;
   const reviews = [...triangle.reviews].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),
   );
@@ -69,9 +70,9 @@ export default async function TrianglePage({
         </Link>
       </header>
 
-      <TriangleImage
-        spec={triangle.image}
-        title={triangle.title}
+      <TrianglePhoto
+        src={triangle.imageUrl}
+        alt={triangle.title}
         className="aspect-square w-full"
       />
 
@@ -95,12 +96,21 @@ export default async function TrianglePage({
           </p>
         </section>
 
-        <ReviewForm
-          triangleId={triangle.id}
-          existing={myReview}
-          isUploader={triangle.authorId === me.id}
-          isZealot={me.role === "zealot"}
-        />
+        {me ? (
+          <ReviewForm
+            triangleId={triangle.id}
+            existing={myReview}
+            isUploader={triangle.authorId === me.id}
+            isZealot={me.role === "zealot"}
+          />
+        ) : (
+          <p className="rounded-2xl border border-gray-200 bg-army-50 p-4 text-center text-sm text-army-900">
+            <Link href="/login" className="font-semibold underline">
+              Log in
+            </Link>{" "}
+            to score this triangle.
+          </p>
+        )}
 
         <section className="space-y-3">
           <h2 className="text-base font-bold">

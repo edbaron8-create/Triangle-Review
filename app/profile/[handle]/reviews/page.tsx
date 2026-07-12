@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProfileHeader from "@/components/ProfileHeader";
-import TriangleImage from "@/components/TriangleImage";
+import TrianglePhoto from "@/components/TrianglePhoto";
 import {
   getReviewsBy,
   getTrianglerByHandle,
@@ -49,9 +49,10 @@ export default async function ProfileReviewsPage({
                 className="flex gap-3 rounded-2xl border border-gray-200 p-3"
               >
                 <Link href={`/triangles/${triangle.id}`} className="shrink-0">
-                  <TriangleImage
-                    spec={triangle.image}
-                    title={triangle.title}
+                  <TrianglePhoto
+                    src={triangle.imageUrl}
+                    alt={triangle.title}
+                    sizes="80px"
                     className="h-20 w-20 rounded-lg"
                   />
                 </Link>

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
-import { getCurrentUser } from "@/lib/data";
+import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,12 +14,12 @@ export const viewport: Viewport = {
   themeColor: "#4b5320",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const me = getCurrentUser();
+  const me = await getCurrentUser();
 
   return (
     <html lang="en">
@@ -54,6 +54,14 @@ export default function RootLayout({
                 className="w-full rounded-full bg-gray-100 py-2 pl-9 pr-4 text-sm placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-army-500"
               />
             </form>
+            {!me && (
+              <Link
+                href="/login"
+                className="shrink-0 rounded-lg bg-army-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-army-800"
+              >
+                Log in
+              </Link>
+            )}
           </div>
         </header>
 

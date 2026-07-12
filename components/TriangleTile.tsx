@@ -1,5 +1,5 @@
 import Link from "next/link";
-import TriangleImage from "@/components/TriangleImage";
+import TrianglePhoto from "@/components/TrianglePhoto";
 import { scoreOf } from "@/lib/data";
 import { formatScore } from "@/lib/format";
 import type { Triangle } from "@/lib/types";
@@ -20,9 +20,10 @@ export default function TriangleTile({
       href={`/triangles/${triangle.id}`}
       className="group relative block aspect-square overflow-hidden bg-gray-100"
     >
-      <TriangleImage
-        spec={triangle.image}
-        title={triangle.title}
+      <TrianglePhoto
+        src={triangle.imageUrl}
+        alt={triangle.title}
+        sizes="(max-width: 448px) 33vw, 150px"
         className="h-full w-full transition duration-300 group-hover:scale-105"
       />
       {rank !== undefined && (
