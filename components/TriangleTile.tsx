@@ -5,7 +5,7 @@ import { formatScore } from "@/lib/format";
 import type { Triangle } from "@/lib/types";
 
 /** Square grid tile (Explore, search, profile grids) with score overlay. */
-export default function TriangleTile({
+export default async function TriangleTile({
   triangle,
   rank,
 }: {
@@ -13,7 +13,7 @@ export default function TriangleTile({
   /** 1-based leaderboard rank; the top 3 get filled badges. */
   rank?: number;
 }) {
-  const score = scoreOf(triangle);
+  const score = await scoreOf(triangle);
 
   return (
     <Link

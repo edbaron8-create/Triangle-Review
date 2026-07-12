@@ -21,10 +21,10 @@ export default async function ProfilePage({
 }) {
   const { handle } = await params;
   await requireUser();
-  const user = getTrianglerByHandle(handle);
+  const user = await getTrianglerByHandle(handle);
   if (!user) notFound();
 
-  const posted = getTrianglesBy(user.id);
+  const posted = await getTrianglesBy(user.id);
 
   return (
     <div>

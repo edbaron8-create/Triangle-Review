@@ -14,15 +14,17 @@ import {
   scoreOf,
 } from "@/lib/data";
 import { formatScore, timeAgo } from "@/lib/format";
-import { RATING_AXES, type Review } from "@/lib/types";
+import { RATING_AXES, type Review, type Triangler } from "@/lib/types";
 
 /** Label for the component a review feeds into. */
-function componentLabel(review: Review, uploaderId: string): string {
+function componentLabel(
+  review: Review,
+  uploaderId: string,
+  reviewer: Triangler | undefined,
+): string {
   if (review.kind === "zealot") return "Zealot verdict";
   if (review.authorId === uploaderId) return "Uploader score";
-  return getTrianglerById(review.authorId)?.role === "council"
-    ? "Council score"
-    : "Community score";
+  return reviewer?.role === "council" ? "Council score" : "Community score";
 }
 
 export default async function TrianglePage({
@@ -32,14 +34,21 @@ export default async function TrianglePage({
 }) {
   const { id } = await params;
   const me = await requireUser();
-  const triangle = getTriangleById(id);
+  const triangle = await getTriangleById(id);
   if (!triangle) notFound();
 
-  const author = getTrianglerById(triangle.authorId);
-  const score = scoreOf(triangle);
+  const author = await getTrianglerById(triangle.authorId);
+  const score = await scoreOf(triangle);
   const myReview = triangle.reviews.find((r) => r.authorId === me.id);
   const reviews = [...triangle.reviews].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),
+  );
+  const reviewers = new Map<string, Triangler | undefined>(
+    await Promise.all(
+      reviews.map(
+        async (r) => [r.authorId, await getTrianglerById(r.authorId)] as const,
+      ),
+    ),
   );
 
   return (
@@ -112,7 +121,7 @@ export default async function TrianglePage({
           ) : (
             <ul className="space-y-3">
               {reviews.map((review) => {
-                const reviewer = getTrianglerById(review.authorId);
+                const reviewer = reviewers.get(review.authorId);
                 return (
                   <li key={review.id} className="rounded-2xl border border-gray-200 p-3.5">
                     <div className="flex items-center gap-3">
@@ -134,7 +143,7 @@ export default async function TrianglePage({
                             "unknown"
                           )}
                           <span className="rounded-full bg-army-50 px-2 py-0.5 text-[11px] font-medium text-army-800">
-                            {componentLabel(review, triangle.authorId)}
+                            {componentLabel(review, triangle.authorId, reviewer)}
                           </span>
                         </p>
                         <p className="text-xs text-gray-400">{timeAgo(review.createdAt)}</p>

@@ -18,7 +18,7 @@ export default async function SearchPage({
   await requireUser();
   const { q = "" } = await searchParams;
   const query = q.trim();
-  const results = search(query);
+  const results = await search(query);
   const empty =
     results.trianglers.length === 0 && results.triangles.length === 0;
 

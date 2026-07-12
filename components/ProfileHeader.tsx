@@ -23,14 +23,14 @@ export default async function ProfileHeader({
 }) {
   const me = await getCurrentUser();
   const isMe = me?.id === user.id;
-  const posts = getTrianglesBy(user.id).length;
-  const reviews = getReviewCountBy(user.id);
+  const posts = (await getTrianglesBy(user.id)).length;
+  const reviews = await getReviewCountBy(user.id);
 
   const stats: Array<[number, string]> = [
     [posts, posts === 1 ? "triangle" : "triangles"],
     [reviews, reviews === 1 ? "score" : "scores"],
-    [getFollowerCount(user.id), "followers"],
-    [getFollowingCount(user.id), "following"],
+    [await getFollowerCount(user.id), "followers"],
+    [await getFollowingCount(user.id), "following"],
   ];
 
   const tabBase =
@@ -81,7 +81,7 @@ export default async function ProfileHeader({
         ) : me ? (
           <FollowButton
             targetId={user.id}
-            following={isFollowing(me.id, user.id)}
+            following={await isFollowing(me.id, user.id)}
             block
           />
         ) : (

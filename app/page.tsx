@@ -8,8 +8,8 @@ import type { FeedItem } from "@/lib/types";
 
 export default async function HomePage() {
   const me = await requireUser();
-  const feed = getFeedFor(me.id);
-  const suggested = getSuggestedTrianglers(me.id);
+  const feed = await getFeedFor(me.id);
+  const suggested = await getSuggestedTrianglers(me.id);
 
   if (feed.length === 0) {
     return (

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default async function ExplorePage() {
   await requireUser();
-  const ranked = getTopTriangles();
+  const ranked = await getTopTriangles();
 
   return (
     <div>

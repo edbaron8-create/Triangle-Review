@@ -29,10 +29,18 @@ export default async function ProfileReviewsPage({
 }) {
   const { handle } = await params;
   await requireUser();
-  const user = getTrianglerByHandle(handle);
+  const user = await getTrianglerByHandle(handle);
   if (!user) notFound();
 
-  const reviews = getReviewsBy(user.id);
+  const reviews = await getReviewsBy(user.id);
+  const posters = new Map(
+    await Promise.all(
+      reviews.map(
+        async ({ triangle }) =>
+          [triangle.authorId, await getTrianglerById(triangle.authorId)] as const,
+      ),
+    ),
+  );
 
   return (
     <div>
@@ -44,7 +52,7 @@ export default async function ProfileReviewsPage({
       ) : (
         <ul className="space-y-3 px-4 py-4">
           {reviews.map(({ review, triangle }) => {
-            const poster = getTrianglerById(triangle.authorId);
+            const poster = posters.get(triangle.authorId);
             return (
               <li
                 key={review.id}

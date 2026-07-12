@@ -11,10 +11,12 @@ import type {
 } from "@/lib/types";
 
 /**
- * Data access over SQLite. This is the ONLY module that knows where data
- * comes from — pages and components call these helpers and never touch SQL.
- * Swapping SQLite for Postgres later means changing only this file (and
- * lib/db.ts).
+ * Data access layer. This is the ONLY module that knows where data comes
+ * from — pages and components call these helpers and never touch SQL.
+ *
+ * Every exported helper is async even though the current SQLite driver is
+ * synchronous, so swapping in an async backend (Postgres/Supabase) changes
+ * only this file's internals — no call sites move.
  */
 
 /* ------------------------------------------------------------------ */
@@ -101,6 +103,17 @@ function rowToTriangle(row: TriangleRow, reviews: Review[]): Triangle {
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Sync internals (SQLite)                                             */
+/* ------------------------------------------------------------------ */
+
+function userById(id: string): Triangler | undefined {
+  const row = db().prepare("SELECT * FROM users WHERE id = ?").get(id) as
+    | UserRow
+    | undefined;
+  return row ? rowToTriangler(row) : undefined;
+}
+
 /** Fetch reviews for a set of triangles in one query, grouped by triangle. */
 function reviewsFor(triangleIds: string[]): Map<string, Review[]> {
   const map = new Map<string, Review[]>();
@@ -124,148 +137,14 @@ function hydrate(rows: TriangleRow[]): Triangle[] {
   return rows.map((row) => rowToTriangle(row, reviews.get(row.id) ?? []));
 }
 
-/* ------------------------------------------------------------------ */
-/* Trianglers                                                          */
-/* ------------------------------------------------------------------ */
-
-export function getTrianglerById(id: string): Triangler | undefined {
-  const row = db().prepare("SELECT * FROM users WHERE id = ?").get(id) as
-    | UserRow
-    | undefined;
-  return row ? rowToTriangler(row) : undefined;
-}
-
-export function getTrianglerByHandle(handle: string): Triangler | undefined {
-  const row = db().prepare("SELECT * FROM users WHERE handle = ?").get(handle) as
-    | UserRow
-    | undefined;
-  return row ? rowToTriangler(row) : undefined;
-}
-
-export function getFollowerCount(userId: string): number {
-  const row = db()
-    .prepare("SELECT COUNT(*) AS n FROM follows WHERE followee_id = ?")
-    .get(userId) as { n: number };
-  return row.n;
-}
-
-export function getFollowingCount(userId: string): number {
-  const row = db()
-    .prepare("SELECT COUNT(*) AS n FROM follows WHERE follower_id = ?")
-    .get(userId) as { n: number };
-  return row.n;
-}
-
-export function isFollowing(followerId: string, followeeId: string): boolean {
-  return !!db()
-    .prepare("SELECT 1 FROM follows WHERE follower_id = ? AND followee_id = ?")
-    .get(followerId, followeeId);
-}
-
-/** Trianglers the given user doesn't follow yet (for suggestions). */
-export function getSuggestedTrianglers(userId: string, limit = 4): Triangler[] {
-  const rows = db()
-    .prepare(
-      `SELECT * FROM users
-       WHERE id != ?
-         AND id NOT IN (SELECT followee_id FROM follows WHERE follower_id = ?)
-       ORDER BY joined LIMIT ?`,
-    )
-    .all(userId, userId, limit) as UserRow[];
-  return rows.map(rowToTriangler);
-}
-
-/** Toggle whether `userId` follows `targetId`. Returns the new state. */
-export function setFollowing(userId: string, targetId: string): boolean {
-  if (userId === targetId) return false;
-  const conn = db();
-  const removed = conn
-    .prepare("DELETE FROM follows WHERE follower_id = ? AND followee_id = ?")
-    .run(userId, targetId);
-  if (removed.changes > 0) return false;
-  conn
-    .prepare("INSERT OR IGNORE INTO follows (follower_id, followee_id) VALUES (?, ?)")
-    .run(userId, targetId);
-  return true;
-}
-
-/* ------------------------------------------------------------------ */
-/* Triangles + scoring                                                 */
-/* ------------------------------------------------------------------ */
-
-/** All triangles, newest-submitted first (feed order). */
-export function getTriangles(): Triangle[] {
+function allTriangles(): Triangle[] {
   const rows = db()
     .prepare("SELECT * FROM triangles ORDER BY created_at DESC")
     .all() as TriangleRow[];
   return hydrate(rows);
 }
 
-/** A single triangle by id, or undefined if not found. */
-export function getTriangleById(id: string): Triangle | undefined {
-  const row = db().prepare("SELECT * FROM triangles WHERE id = ?").get(id) as
-    | TriangleRow
-    | undefined;
-  return row ? hydrate([row])[0] : undefined;
-}
-
-/** Triangles posted by a user, newest first. */
-export function getTrianglesBy(userId: string): Triangle[] {
-  const rows = db()
-    .prepare("SELECT * FROM triangles WHERE author_id = ? ORDER BY created_at DESC")
-    .all(userId) as TriangleRow[];
-  return hydrate(rows);
-}
-
-/** Create a triangle post with the uploader's initial score. */
-export function createTriangle(input: {
-  title: string;
-  description: string;
-  location: string;
-  imageUrl: string;
-  authorId: string;
-  ratings: Ratings;
-  comment: string;
-}): Triangle {
-  const id = `t-${randomUUID()}`;
-  const now = new Date().toISOString();
-  db()
-    .prepare(
-      `INSERT INTO triangles (id, title, description, location, image_url, author_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
-      id,
-      input.title.trim().slice(0, 80),
-      input.description.trim().slice(0, 500),
-      input.location.trim().slice(0, 80),
-      input.imageUrl,
-      input.authorId,
-      now,
-    );
-  upsertReview(id, input.authorId, {
-    ratings: input.ratings,
-    zealotScore: 0,
-    comment: input.comment,
-  });
-  return getTriangleById(id)!;
-}
-
-/** A review's points: 30-point axes total, or the Zealot's 10-point score. */
-export function reviewTotal(review: Review): number {
-  if (review.kind === "zealot") return review.score;
-  const { aesthetic, tacticality, triangularity } = review.ratings;
-  return aesthetic + tacticality + triangularity;
-}
-
-/**
- * Compute a triangle's Score out of 100 from four components:
- * the uploader's own score (/30), the average of community members' scores
- * (/30), the average of Council members' scores (/30), and the Zealot's
- * criteria-free verdict (/10). Components missing a score contribute 0 and
- * read as `null` (pending).
- */
-export function scoreOf(triangle: Triangle): Score {
+function computeScore(triangle: Triangle): Score {
   let uploader: number | null = null;
   let zealot: number | null = null;
   const community: number[] = [];
@@ -279,7 +158,7 @@ export function scoreOf(triangle: Triangle): Score {
     const total = reviewTotal(review);
     if (review.authorId === triangle.authorId) {
       uploader = total;
-    } else if (getTrianglerById(review.authorId)?.role === "council") {
+    } else if (userById(review.authorId)?.role === "council") {
       council.push(total);
     } else {
       community.push(total);
@@ -304,22 +183,170 @@ export function scoreOf(triangle: Triangle): Score {
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Trianglers                                                          */
+/* ------------------------------------------------------------------ */
+
+export async function getTrianglerById(id: string): Promise<Triangler | undefined> {
+  return userById(id);
+}
+
+export async function getTrianglerByHandle(
+  handle: string,
+): Promise<Triangler | undefined> {
+  const row = db().prepare("SELECT * FROM users WHERE handle = ?").get(handle) as
+    | UserRow
+    | undefined;
+  return row ? rowToTriangler(row) : undefined;
+}
+
+export async function getFollowerCount(userId: string): Promise<number> {
+  const row = db()
+    .prepare("SELECT COUNT(*) AS n FROM follows WHERE followee_id = ?")
+    .get(userId) as { n: number };
+  return row.n;
+}
+
+export async function getFollowingCount(userId: string): Promise<number> {
+  const row = db()
+    .prepare("SELECT COUNT(*) AS n FROM follows WHERE follower_id = ?")
+    .get(userId) as { n: number };
+  return row.n;
+}
+
+export async function isFollowing(
+  followerId: string,
+  followeeId: string,
+): Promise<boolean> {
+  return !!db()
+    .prepare("SELECT 1 FROM follows WHERE follower_id = ? AND followee_id = ?")
+    .get(followerId, followeeId);
+}
+
+/** Trianglers the given user doesn't follow yet (for suggestions). */
+export async function getSuggestedTrianglers(
+  userId: string,
+  limit = 4,
+): Promise<Triangler[]> {
+  const rows = db()
+    .prepare(
+      `SELECT * FROM users
+       WHERE id != ?
+         AND id NOT IN (SELECT followee_id FROM follows WHERE follower_id = ?)
+       ORDER BY joined LIMIT ?`,
+    )
+    .all(userId, userId, limit) as UserRow[];
+  return rows.map(rowToTriangler);
+}
+
+/** Toggle whether `userId` follows `targetId`. Returns the new state. */
+export async function setFollowing(
+  userId: string,
+  targetId: string,
+): Promise<boolean> {
+  if (userId === targetId) return false;
+  const conn = db();
+  const removed = conn
+    .prepare("DELETE FROM follows WHERE follower_id = ? AND followee_id = ?")
+    .run(userId, targetId);
+  if (removed.changes > 0) return false;
+  conn
+    .prepare("INSERT OR IGNORE INTO follows (follower_id, followee_id) VALUES (?, ?)")
+    .run(userId, targetId);
+  return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* Triangles + scoring                                                 */
+/* ------------------------------------------------------------------ */
+
+/** All triangles, newest-submitted first (feed order). */
+export async function getTriangles(): Promise<Triangle[]> {
+  return allTriangles();
+}
+
+/** A single triangle by id, or undefined if not found. */
+export async function getTriangleById(id: string): Promise<Triangle | undefined> {
+  const row = db().prepare("SELECT * FROM triangles WHERE id = ?").get(id) as
+    | TriangleRow
+    | undefined;
+  return row ? hydrate([row])[0] : undefined;
+}
+
+/** Triangles posted by a user, newest first. */
+export async function getTrianglesBy(userId: string): Promise<Triangle[]> {
+  const rows = db()
+    .prepare("SELECT * FROM triangles WHERE author_id = ? ORDER BY created_at DESC")
+    .all(userId) as TriangleRow[];
+  return hydrate(rows);
+}
+
+/** Create a triangle post with the uploader's initial score. */
+export async function createTriangle(input: {
+  title: string;
+  description: string;
+  location: string;
+  imageUrl: string;
+  authorId: string;
+  ratings: Ratings;
+  comment: string;
+}): Promise<Triangle> {
+  const id = `t-${randomUUID()}`;
+  const now = new Date().toISOString();
+  db()
+    .prepare(
+      `INSERT INTO triangles (id, title, description, location, image_url, author_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      id,
+      input.title.trim().slice(0, 80),
+      input.description.trim().slice(0, 500),
+      input.location.trim().slice(0, 80),
+      input.imageUrl,
+      input.authorId,
+      now,
+    );
+  await upsertReview(id, input.authorId, {
+    ratings: input.ratings,
+    zealotScore: 0,
+    comment: input.comment,
+  });
+  return (await getTriangleById(id))!;
+}
+
+/** A review's points: 30-point axes total, or the Zealot's 10-point score. */
+export function reviewTotal(review: Review): number {
+  if (review.kind === "zealot") return review.score;
+  const { aesthetic, tacticality, triangularity } = review.ratings;
+  return aesthetic + tacticality + triangularity;
+}
+
+/**
+ * Compute a triangle's Score out of 100 from four components:
+ * the uploader's own score (/30), the average of community members' scores
+ * (/30), the average of Council members' scores (/30), and the Zealot's
+ * criteria-free verdict (/10). Components missing a score contribute 0 and
+ * read as `null` (pending).
+ */
+export async function scoreOf(triangle: Triangle): Promise<Score> {
+  return computeScore(triangle);
+}
+
 /** The highest-scoring triangles (Explore / Top Triangles). */
-export function getTopTriangles(limit?: number): Triangle[] {
-  const ranked = getTriangles().sort((a, b) => scoreOf(b).total - scoreOf(a).total);
+export async function getTopTriangles(limit?: number): Promise<Triangle[]> {
+  const ranked = allTriangles().sort(
+    (a, b) => computeScore(b).total - computeScore(a).total,
+  );
   return limit === undefined ? ranked : ranked.slice(0, limit);
 }
 
 /**
- * A home feed: posts from people the user follows (newest first) with the
- * top-scored triangles from outside their circle woven in as suggestions.
- * Logged-out visitors just get Top Triangles.
+ * A home feed: posts from people the user follows (newest first, own posts
+ * included) with the top-scored triangles from outside their circle woven
+ * in as suggestions.
  */
-export function getFeedFor(userId: string | null): FeedItem[] {
-  if (!userId) {
-    return getTopTriangles().map((triangle) => ({ triangle, reason: "top" }));
-  }
-
+export async function getFeedFor(userId: string): Promise<FeedItem[]> {
   const followedIds = new Set(
     (
       db()
@@ -328,14 +355,14 @@ export function getFeedFor(userId: string | null): FeedItem[] {
     ).map((r) => r.followee_id),
   );
 
-  const all = getTriangles();
+  const all = allTriangles();
   const followed: FeedItem[] = all
     .filter((t) => followedIds.has(t.authorId) || t.authorId === userId)
     .map((triangle) => ({ triangle, reason: "following" }));
 
   const suggestions: FeedItem[] = all
     .filter((t) => !followedIds.has(t.authorId) && t.authorId !== userId)
-    .sort((a, b) => scoreOf(b).total - scoreOf(a).total)
+    .sort((a, b) => computeScore(b).total - computeScore(a).total)
     .slice(0, 3)
     .map((triangle) => ({ triangle, reason: "top" }));
 
@@ -357,10 +384,10 @@ export function getFeedFor(userId: string | null): FeedItem[] {
 /* ------------------------------------------------------------------ */
 
 /** Case-insensitive search over Trianglers and Triangles. */
-export function search(query: string): {
+export async function search(query: string): Promise<{
   trianglers: Triangler[];
   triangles: Triangle[];
-} {
+}> {
   const q = query.trim().toLowerCase();
   if (!q) return { trianglers: [], triangles: [] };
   // Escape LIKE wildcards in user input.
@@ -395,21 +422,21 @@ export function search(query: string): {
 /* ------------------------------------------------------------------ */
 
 /** All reviews written by a user, newest first, with their triangle. */
-export function getReviewsBy(
+export async function getReviewsBy(
   userId: string,
-): Array<{ review: Review; triangle: Triangle }> {
+): Promise<Array<{ review: Review; triangle: Triangle }>> {
   const rows = db()
     .prepare("SELECT * FROM reviews WHERE author_id = ? ORDER BY created_at DESC")
     .all(userId) as ReviewRow[];
   const result: Array<{ review: Review; triangle: Triangle }> = [];
   for (const row of rows) {
-    const triangle = getTriangleById(row.triangle_id);
+    const triangle = await getTriangleById(row.triangle_id);
     if (triangle) result.push({ review: rowToReview(row), triangle });
   }
   return result;
 }
 
-export function getReviewCountBy(userId: string): number {
+export async function getReviewCountBy(userId: string): Promise<number> {
   const row = db()
     .prepare("SELECT COUNT(*) AS n FROM reviews WHERE author_id = ?")
     .get(userId) as { n: number };
@@ -426,15 +453,15 @@ const clamp = (n: number, max: number) =>
  * 0–10 verdict, everyone else (including the uploader) scores the three
  * axes for a total out of 30.
  */
-export function upsertReview(
+export async function upsertReview(
   triangleId: string,
   authorId: string,
   input: { ratings: Ratings; zealotScore: number; comment: string },
-): Review | undefined {
+): Promise<Review | undefined> {
   const triangle = db()
     .prepare("SELECT author_id FROM triangles WHERE id = ?")
     .get(triangleId) as { author_id: string } | undefined;
-  const author = getTrianglerById(authorId);
+  const author = userById(authorId);
   if (!triangle || !author) return undefined;
 
   const comment = input.comment.trim().slice(0, 500);

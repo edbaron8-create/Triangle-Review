@@ -9,7 +9,7 @@ import { formatScore, timeAgo } from "@/lib/format";
 import type { Triangle } from "@/lib/types";
 
 /** Instagram-style feed post for a single triangle (edge-to-edge on mobile). */
-export default function TriangleCard({
+export default async function TriangleCard({
   triangle,
   suggested = false,
 }: {
@@ -17,10 +17,10 @@ export default function TriangleCard({
   /** Shown when the post is in the feed because it's top-rated, not followed. */
   suggested?: boolean;
 }) {
-  const author = getTrianglerById(triangle.authorId);
-  const score = scoreOf(triangle);
+  const author = await getTrianglerById(triangle.authorId);
+  const score = await scoreOf(triangle);
   const latest = triangle.reviews[triangle.reviews.length - 1];
-  const latestAuthor = latest ? getTrianglerById(latest.authorId) : undefined;
+  const latestAuthor = latest ? await getTrianglerById(latest.authorId) : undefined;
 
   return (
     <article className="border-b border-gray-100 bg-white pb-4">

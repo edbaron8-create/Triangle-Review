@@ -77,7 +77,7 @@ export async function postTriangle(formData: FormData) {
   );
 
   const num = (key: string) => Number(formData.get(key));
-  const triangle = createTriangle({
+  const triangle = await createTriangle({
     title,
     description: String(formData.get("description") ?? ""),
     location: String(formData.get("location") ?? ""),
@@ -105,7 +105,7 @@ export async function submitReview(triangleId: string, formData: FormData) {
   if (!me) redirect("/login");
 
   const num = (key: string) => Number(formData.get(key));
-  upsertReview(triangleId, me.id, {
+  await upsertReview(triangleId, me.id, {
     ratings: {
       aesthetic: num("aesthetic"),
       tacticality: num("tacticality"),
@@ -123,6 +123,6 @@ export async function submitReview(triangleId: string, formData: FormData) {
 export async function toggleFollow(targetId: string) {
   const me = await getCurrentUser();
   if (!me) redirect("/login");
-  setFollowing(me.id, targetId);
+  await setFollowing(me.id, targetId);
   revalidatePath("/", "layout");
 }
