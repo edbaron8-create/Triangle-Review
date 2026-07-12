@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { authenticate, endSession, getCurrentUser, registerUser } from "@/lib/auth";
 import { createTriangle, setFollowing, upsertReview } from "@/lib/data";
 import { supabase, UPLOADS_BUCKET } from "@/lib/supabase";
+import type { Triangle } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
 /* Auth                                                                */
@@ -68,29 +69,42 @@ export async function postTriangle(formData: FormData) {
   if (!ext) fail("Photos must be JPEG, PNG, WebP, or GIF.");
   if (file.size > MAX_IMAGE_BYTES) fail("Photos are limited to 8 MB.");
 
-  const filename = `${randomUUID()}${ext}`;
-  const upload = await supabase()
-    .storage.from(UPLOADS_BUCKET)
-    .upload(filename, Buffer.from(await file.arrayBuffer()), {
-      contentType: file.type,
-    });
-  if (upload.error) fail("Could not store the photo — please try again.");
-  const { data: pub } = supabase().storage.from(UPLOADS_BUCKET).getPublicUrl(filename);
+  // Storing the photo and writing the post can fail at the backend (storage
+  // bucket, database constraints, etc.). Catch those here so the uploader gets
+  // a readable message instead of an unhandled error crashing the whole page
+  // ("a client-side exception has occurred"). The real cause is logged for the
+  // server logs.
+  let triangle: Triangle;
+  try {
+    const filename = `${randomUUID()}${ext}`;
+    const upload = await supabase()
+      .storage.from(UPLOADS_BUCKET)
+      .upload(filename, Buffer.from(await file.arrayBuffer()), {
+        contentType: file.type,
+      });
+    if (upload.error) throw new Error(`storage upload failed: ${upload.error.message}`);
+    const { data: pub } = supabase().storage.from(UPLOADS_BUCKET).getPublicUrl(filename);
 
-  const num = (key: string) => Number(formData.get(key));
-  const triangle = await createTriangle({
-    title,
-    description: String(formData.get("description") ?? ""),
-    location: String(formData.get("location") ?? ""),
-    imageUrl: pub.publicUrl,
-    authorId: me.id,
-    ratings: {
-      aesthetic: num("aesthetic"),
-      tacticality: num("tacticality"),
-      triangularity: num("triangularity"),
-    },
-    comment: String(formData.get("comment") ?? ""),
-  });
+    const num = (key: string) => Number(formData.get(key));
+    triangle = await createTriangle({
+      title,
+      description: String(formData.get("description") ?? ""),
+      location: String(formData.get("location") ?? ""),
+      imageUrl: pub.publicUrl,
+      authorId: me.id,
+      ratings: {
+        aesthetic: num("aesthetic"),
+        tacticality: num("tacticality"),
+        triangularity: num("triangularity"),
+      },
+      comment: String(formData.get("comment") ?? ""),
+    });
+  } catch (err) {
+    console.error("postTriangle failed:", err);
+    const detail = err instanceof Error ? err.message : "unknown error";
+    fail(`Could not post your triangle: ${detail}`);
+    return; // unreachable (fail() redirects) — satisfies the type checker
+  }
 
   revalidatePath("/", "layout");
   redirect(`/triangles/${triangle.id}`);
