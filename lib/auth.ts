@@ -15,8 +15,6 @@ import type { Triangler } from "@/lib/types";
 const COOKIE = "tr_session";
 const SESSION_DAYS = 30;
 
-export const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
-
 /** The signed-in Triangler, or null when browsing logged out. */
 export async function getCurrentUser(): Promise<Triangler | null> {
   const token = (await cookies()).get(COOKIE)?.value;
@@ -72,10 +70,8 @@ export async function registerUser(input: {
   password: string;
 }): Promise<string | null> {
   const username = input.username.trim().toLowerCase();
-  if (!USERNAME_RE.test(username)) {
-    return "Usernames are 3–20 characters: lowercase letters, numbers, underscores.";
-  }
-  if (input.password.length < 6) return "Passwords need at least 6 characters.";
+  // No length or character rules — just can't be blank (it needs a profile URL).
+  if (!username) return "Please enter a username.";
 
   const id = `u-${randomUUID()}`;
   const ins = await supabase().from("users").insert({

@@ -37,21 +37,16 @@ export default async function SignupPage({
         <input
           name="username"
           required
-          minLength={3}
-          maxLength={20}
-          pattern="[a-z0-9_]+"
-          title="Lowercase letters, numbers, and underscores"
           autoComplete="username"
-          placeholder="username (e.g. acute_alex)"
+          placeholder="username"
           className={inputClass}
         />
         <input
           name="password"
           type="password"
           required
-          minLength={6}
           autoComplete="new-password"
-          placeholder="password (6+ characters)"
+          placeholder="password"
           className={inputClass}
         />
         <button
