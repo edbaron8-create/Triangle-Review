@@ -1,8 +1,16 @@
 # ▲ Triangle Reviewer
 
 **Instagram for triangles in real life.** Photograph triangles you find in the
-world, post them, and let the community review and rate them. The best-rated
-triangles rise to the top and get highlighted for everyone.
+world and post them. Every triangle is scored out of **100** from four
+components: the **uploader's** own score (/30), the **community average**
+(/30), the **Triangle Council's** average (/30), and the **Triangle Zealot's**
+criteria-free verdict (/10). The 30-point scores rate **Aesthetic Quality**,
+**Tacticality**, and **Triangularity**, each out of 10. Council members and
+the (single) Zealot are chosen on the backend. Top-scoring triangles lead the
+Explore page and get suggested in feeds.
+
+Mobile-first, Instagram-style UI: bottom tab bar, top search bar, army green
+and white.
 
 ## Tech stack
 
@@ -31,9 +39,9 @@ Then open [http://localhost:3000](http://localhost:3000).
 ## Project layout
 
 ```
-app/          Routes (home feed, triangle detail)
-components/    Reusable UI (TriangleCard, ScoreBadge)
-lib/          Domain types + data access (currently mock fixtures)
+app/          Routes (feed, explore, search, triangle detail, profiles, upload)
+components/   Reusable UI (BottomNav, TriangleCard, ScoreBreakdown, ...)
+lib/          Domain types, data access (mock fixtures + roles), server actions
 ```
 
 Data is served from in-memory mock fixtures in `lib/data.ts`. See
