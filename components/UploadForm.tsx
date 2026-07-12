@@ -9,8 +9,12 @@ import { AXIS_MAX, COMPONENT_MAX, RATING_AXES, type Ratings } from "@/lib/types"
  * New-post form: photo (with preview), details, and the uploader's own
  * score out of 30 — the Uploader component of the final /100.
  */
+/** Keep in sync with MAX_IMAGE_BYTES in lib/actions.ts. */
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+
 export default function UploadForm() {
   const [preview, setPreview] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [ratings, setRatings] = useState<Ratings>({
     aesthetic: 7,
     tacticality: 7,
@@ -37,6 +41,19 @@ export default function UploadForm() {
           className="sr-only"
           onChange={(e) => {
             const file = e.target.files?.[0];
+            // Reject oversized photos here so the request never exceeds the
+            // Server Action body limit (which would crash instead of showing
+            // a message). The server re-checks this as the source of truth.
+            if (file && file.size > MAX_IMAGE_BYTES) {
+              e.target.value = "";
+              setFileError("That photo is over 8 MB — please pick a smaller one.");
+              setPreview((old) => {
+                if (old) URL.revokeObjectURL(old);
+                return null;
+              });
+              return;
+            }
+            setFileError(null);
             setPreview((old) => {
               if (old) URL.revokeObjectURL(old);
               return file ? URL.createObjectURL(file) : null;
@@ -58,6 +75,9 @@ export default function UploadForm() {
           </span>
         )}
       </label>
+      {fileError && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{fileError}</p>
+      )}
 
       <input name="title" required maxLength={80} placeholder="Title (e.g. Rooftop Ridgeline)" className={inputClass} />
       <textarea
