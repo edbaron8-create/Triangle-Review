@@ -23,6 +23,7 @@ delete `data/` for a factory reset. Assign roles from the backend with
 - [Next.js](https://nextjs.org/) (App Router)
 - TypeScript (strict)
 - Tailwind CSS
+- SQLite (`better-sqlite3`) + session-cookie auth, no external services
 
 ## Getting started
 
@@ -41,6 +42,22 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `npm run build` | Production build                |
 | `npm run start` | Serve the production build      |
 | `npm run lint`  | Run ESLint                      |
+| `npm run set-role -- <handle> <role>` | Assign `member`/`council`/`zealot` |
+
+## Deploying
+
+The app stores everything on disk: a SQLite database and uploaded photos,
+both under `data/` (override with the `DATA_DIR` env var).
+
+- **Host with a persistent disk (recommended)** — Fly.io, Railway, Render, or
+  any VPS: `npm run build && npm run start`. Point `DATA_DIR` at a mounted
+  volume and your data survives restarts and deploys.
+- **Vercel / serverless** — the filesystem is read-only and instances are
+  ephemeral, so the app automatically falls back to `/tmp` and runs in
+  **demo mode**: everything works, but accounts, posts, and photos reset
+  whenever the instance recycles (a banner says so). Real persistence on
+  Vercel needs a hosted database (e.g. Turso/Neon) and blob storage for
+  photos — swap `lib/db.ts`/`lib/data.ts` accordingly.
 
 ## Project layout
 

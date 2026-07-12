@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { rowToTriangler, type UserRow } from "@/lib/data";
@@ -38,12 +38,15 @@ async function startSession(userId: string) {
   // Opportunistic cleanup of expired sessions.
   db().prepare("DELETE FROM sessions WHERE expires_at <= ?").run(new Date().toISOString());
 
+  // Mark the cookie secure when the request arrived over HTTPS (hosted
+  // deploys); plain-http localhost keeps working without it.
+  const proto = (await headers()).get("x-forwarded-proto");
   (await cookies()).set(COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
     expires,
-    // NOTE: set `secure: true` once the app is served over HTTPS.
+    secure: proto === "https",
   });
 }
 

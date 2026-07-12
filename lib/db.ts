@@ -16,7 +16,23 @@ import { seedSvg, type SeedImageSpec } from "@/lib/seedSvgs";
  * open one connection (and run one seed check) per route bundle.
  */
 
-export const DATA_DIR = process.env.DATA_DIR ?? path.join(process.cwd(), "data");
+/**
+ * Serverless hosts (Vercel/Lambda) have a read-only filesystem — only /tmp
+ * is writable, and it's wiped whenever the instance recycles. With no
+ * DATA_DIR configured there, fall back to /tmp so the app runs in an
+ * ephemeral "demo mode" instead of crashing. For real persistence, deploy
+ * to a host with a disk (Fly.io, Railway, a VPS) or point DATA_DIR at a
+ * mounted volume.
+ */
+const IS_SERVERLESS =
+  !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+/** True when data lives in /tmp and will not survive instance recycling. */
+export const EPHEMERAL_DATA = !process.env.DATA_DIR && IS_SERVERLESS;
+
+export const DATA_DIR =
+  process.env.DATA_DIR ??
+  (IS_SERVERLESS ? "/tmp/triangle-data" : path.join(process.cwd(), "data"));
 export const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 
 declare global {
