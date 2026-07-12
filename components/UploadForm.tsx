@@ -205,6 +205,13 @@ export default function UploadForm() {
             />
           </label>
         ))}
+        <textarea
+          name="comment"
+          rows={2}
+          maxLength={500}
+          placeholder="Why this score? (optional)"
+          className={`${inputClass} resize-none`}
+        />
       </fieldset>
 
       <button

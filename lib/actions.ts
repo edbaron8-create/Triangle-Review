@@ -96,6 +96,7 @@ export async function postTriangle(formData: FormData) {
         tacticality: num("tacticality"),
         triangularity: num("triangularity"),
       },
+      comment: String(formData.get("comment") ?? ""),
     });
   } catch (err) {
     console.error("postTriangle failed:", err);

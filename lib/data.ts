@@ -257,6 +257,7 @@ export async function createTriangle(input: {
   imageUrl: string;
   authorId: string;
   ratings: Ratings;
+  comment: string;
 }): Promise<Triangle> {
   const id = `t-${randomUUID()}`;
   const { error } = await supabase().from("triangles").insert({
@@ -272,7 +273,7 @@ export async function createTriangle(input: {
   await upsertReview(id, input.authorId, {
     ratings: input.ratings,
     zealotScore: 0,
-    comment: "",
+    comment: input.comment,
   });
   return (await getTriangleById(id))!;
 }
