@@ -45,21 +45,21 @@ export default async function HomePage() {
             key={user.id}
             className="flex w-32 shrink-0 flex-col items-center gap-2 rounded-2xl border border-gray-200 p-4"
           >
-            <Link href={`/profile/${user.handle}`}>
+            <Link href={`/profile/${user.username}`}>
               <Avatar user={user} size="lg" />
             </Link>
             <Link
-              href={`/profile/${user.handle}`}
+              href={`/profile/${user.username}`}
               className="w-full truncate text-center text-xs font-semibold hover:underline"
             >
-              {user.handle}
+              {user.username}
             </Link>
             <p className="w-full truncate text-center text-[11px] text-gray-500">
               {user.role === "council"
                 ? "Triangle Council"
                 : user.role === "zealot"
                   ? "The Zealot"
-                  : user.name}
+                  : "Triangler"}
             </p>
             <FollowButton targetId={user.id} following={false} size="sm" />
           </div>

@@ -1,7 +1,7 @@
 /**
  * Backend role management: assign Council members and the (single) Zealot.
  *
- *   npm run set-role -- <handle> <member|council|zealot>
+ *   npm run set-role -- <username> <member|council|zealot>
  *
  * Promoting someone to zealot demotes the current Zealot to member — there
  * is only ever one Zealot.
@@ -9,11 +9,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseEnv } from "./env.mjs";
 
-const [handle, role] = process.argv.slice(2);
+const [username, role] = process.argv.slice(2);
 const ROLES = ["member", "council", "zealot"];
 
-if (!handle || !ROLES.includes(role)) {
-  console.error("Usage: npm run set-role -- <handle> <member|council|zealot>");
+if (!username || !ROLES.includes(role)) {
+  console.error("Usage: npm run set-role -- <username> <member|council|zealot>");
   process.exit(1);
 }
 
@@ -22,15 +22,15 @@ const supabase = createClient(url, key, { auth: { persistSession: false } });
 
 const { data: user, error } = await supabase
   .from("users")
-  .select("id, handle, role")
-  .eq("handle", handle.toLowerCase())
+  .select("id, username, role")
+  .eq("username", username.toLowerCase())
   .maybeSingle();
 if (error) {
   console.error("Supabase:", error.message);
   process.exit(1);
 }
 if (!user) {
-  console.error(`No Triangler with handle "${handle}".`);
+  console.error(`No Triangler with username "${username}".`);
   process.exit(1);
 }
 
@@ -40,13 +40,13 @@ if (role === "zealot") {
     .update({ role: "member" })
     .eq("role", "zealot")
     .neq("id", user.id)
-    .select("handle");
+    .select("username");
   if (dErr) {
     console.error("Supabase:", dErr.message);
     process.exit(1);
   }
   for (const d of demoted ?? []) {
-    console.log(`Previous Zealot @${d.handle} demoted to member.`);
+    console.log(`Previous Zealot @${d.username} demoted to member.`);
   }
 }
 
@@ -55,4 +55,4 @@ if (uErr) {
   console.error("Supabase:", uErr.message);
   process.exit(1);
 }
-console.log(`@${user.handle}: ${user.role} → ${role}`);
+console.log(`@${user.username}: ${user.role} → ${role}`);

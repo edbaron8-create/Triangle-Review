@@ -32,15 +32,15 @@ export default async function TriangleCard({
 
       <header className="flex items-center gap-3 px-4 py-2.5">
         {author && (
-          <Link href={`/profile/${author.handle}`} className="shrink-0">
+          <Link href={`/profile/${author.username}`} className="shrink-0">
             <Avatar user={author} size="sm" />
           </Link>
         )}
         <div className="min-w-0 flex-1 leading-tight">
           <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
             {author ? (
-              <Link href={`/profile/${author.handle}`} className="hover:underline">
-                {author.handle}
+              <Link href={`/profile/${author.username}`} className="hover:underline">
+                {author.username}
               </Link>
             ) : (
               "unknown"
@@ -74,14 +74,14 @@ export default async function TriangleCard({
         {score.count > 0 && <ScoreBreakdown score={score} compact />}
 
         <p className="text-sm text-gray-800">
-          <span className="font-semibold">{author?.handle}</span>{" "}
+          <span className="font-semibold">{author?.username}</span>{" "}
           <span className="font-medium">{triangle.title}.</span>{" "}
           <span className="text-gray-600">{triangle.description}</span>
         </p>
 
         {latest && latestAuthor && (
           <p className="truncate text-sm text-gray-500">
-            <span className="font-semibold text-gray-700">{latestAuthor.handle}</span>{" "}
+            <span className="font-semibold text-gray-700">{latestAuthor.username}</span>{" "}
             {latest.kind === "zealot"
               ? `verdict: ${formatScore(reviewTotal(latest))}/10`
               : `scored it ${formatScore(reviewTotal(latest))}/30`}

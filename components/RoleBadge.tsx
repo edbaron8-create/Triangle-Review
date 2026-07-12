@@ -1,7 +1,7 @@
 import type { TrianglerRole } from "@/lib/types";
 
 /**
- * Marks Council members and the Zealot next to their handles.
+ * Marks Council members and the Zealot next to their usernames.
  * Compact = just the glyph. Members get nothing.
  */
 export default function RoleBadge({

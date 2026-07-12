@@ -3,8 +3,7 @@
 
 create table if not exists users (
   id            text primary key,
-  handle        text not null,
-  name          text not null,
+  username      text not null,
   bio           text not null default '',
   role          text not null default 'member'
                 check (role in ('member', 'council', 'zealot')),
@@ -12,7 +11,7 @@ create table if not exists users (
   password_hash text not null,
   joined        text not null
 );
-create unique index if not exists users_handle_unique on users (lower(handle));
+create unique index if not exists users_username_unique on users (lower(username));
 
 create table if not exists follows (
   follower_id text not null references users(id) on delete cascade,

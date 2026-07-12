@@ -8,7 +8,7 @@ import type { Triangler } from "@/lib/types";
 /** Instagram-style fixed bottom tab bar: Home, Explore, Post, Profile. */
 export default function BottomNav({ me }: { me: Triangler | null }) {
   const pathname = usePathname();
-  const profileHref = me ? `/profile/${me.handle}` : "/login";
+  const profileHref = me ? `/profile/${me.username}` : "/login";
 
   const tabs = [
     {
@@ -71,7 +71,7 @@ export default function BottomNav({ me }: { me: Triangler | null }) {
         ))}
         <Link
           href={profileHref}
-          aria-label={me ? `Your profile (@${me.handle})` : "Log in"}
+          aria-label={me ? `Your profile (@${me.username})` : "Log in"}
           aria-current={pathname.startsWith(profileHref) ? "page" : undefined}
           className={`flex h-full flex-1 items-center justify-center ${
             me ? "" : "text-gray-400 hover:text-gray-600"

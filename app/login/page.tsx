@@ -30,10 +30,10 @@ export default async function LoginPage({
 
       <form action={logIn} className="space-y-3">
         <input
-          name="handle"
+          name="username"
           required
           autoComplete="username"
-          placeholder="handle"
+          placeholder="username"
           className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-army-500 focus:outline-none focus:ring-1 focus:ring-army-500"
         />
         <input

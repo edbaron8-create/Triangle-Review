@@ -14,8 +14,8 @@ export type TrianglerRole = "member" | "council" | "zealot";
 /** A community member who submits and/or reviews triangles. */
 export interface Triangler {
   id: string;
-  handle: string;
-  name: string;
+  /** Unique login + display name. Lowercase; used in profile URLs. */
+  username: string;
   bio: string;
   role: TrianglerRole;
   /** Hue (0–360) used to render this user's deterministic avatar. */

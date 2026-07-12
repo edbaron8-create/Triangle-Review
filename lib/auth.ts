@@ -15,7 +15,7 @@ import type { Triangler } from "@/lib/types";
 const COOKIE = "tr_session";
 const SESSION_DAYS = 30;
 
-export const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
+export const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 /** The signed-in Triangler, or null when browsing logged out. */
 export async function getCurrentUser(): Promise<Triangler | null> {
@@ -68,32 +68,28 @@ async function startSession(userId: string) {
 
 /** Create an account and sign it in. Returns an error message on failure. */
 export async function registerUser(input: {
-  handle: string;
-  name: string;
+  username: string;
   password: string;
 }): Promise<string | null> {
-  const handle = input.handle.trim().toLowerCase();
-  const name = input.name.trim().slice(0, 50);
-  if (!HANDLE_RE.test(handle)) {
-    return "Handles are 3–20 characters: lowercase letters, numbers, underscores.";
+  const username = input.username.trim().toLowerCase();
+  if (!USERNAME_RE.test(username)) {
+    return "Usernames are 3–20 characters: lowercase letters, numbers, underscores.";
   }
-  if (!name) return "Please enter a display name.";
   if (input.password.length < 6) return "Passwords need at least 6 characters.";
 
   const id = `u-${randomUUID()}`;
   const ins = await supabase().from("users").insert({
     id,
-    handle,
-    name,
+    username,
     bio: "",
     role: "member",
-    // Deterministic avatar hue from the handle.
-    avatar_hue: [...handle].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7),
+    // Deterministic avatar hue from the username.
+    avatar_hue: [...username].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7),
     password_hash: hashPassword(input.password),
     joined: new Date().toISOString().slice(0, 10),
   });
   if (ins.error) {
-    if (ins.error.code === "23505") return "That handle is taken.";
+    if (ins.error.code === "23505") return "That username is taken.";
     check(ins.error);
   }
   await startSession(id);
@@ -102,18 +98,18 @@ export async function registerUser(input: {
 
 /** Verify credentials and sign in. Returns an error message on failure. */
 export async function authenticate(
-  handle: string,
+  username: string,
   password: string,
 ): Promise<string | null> {
   const { data, error } = await supabase()
     .from("users")
     .select("*")
-    .eq("handle", handle.trim().toLowerCase())
+    .eq("username", username.trim().toLowerCase())
     .maybeSingle();
   check(error);
   const row = data as UserRow | null;
   if (!row || !verifyPassword(password, row.password_hash)) {
-    return "Wrong handle or password.";
+    return "Wrong username or password.";
   }
   await startSession(row.id);
   return null;

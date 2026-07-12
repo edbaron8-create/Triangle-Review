@@ -14,8 +14,7 @@ import type { Triangle } from "@/lib/types";
 
 export async function signUp(formData: FormData) {
   const error = await registerUser({
-    handle: String(formData.get("handle") ?? ""),
-    name: String(formData.get("name") ?? ""),
+    username: String(formData.get("username") ?? ""),
     password: String(formData.get("password") ?? ""),
   });
   if (error) redirect(`/signup?error=${encodeURIComponent(error)}`);
@@ -25,7 +24,7 @@ export async function signUp(formData: FormData) {
 
 export async function logIn(formData: FormData) {
   const error = await authenticate(
-    String(formData.get("handle") ?? ""),
+    String(formData.get("username") ?? ""),
     String(formData.get("password") ?? ""),
   );
   if (error) redirect(`/login?error=${encodeURIComponent(error)}`);
@@ -97,7 +96,6 @@ export async function postTriangle(formData: FormData) {
         tacticality: num("tacticality"),
         triangularity: num("triangularity"),
       },
-      comment: String(formData.get("comment") ?? ""),
     });
   } catch (err) {
     console.error("postTriangle failed:", err);

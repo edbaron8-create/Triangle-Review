@@ -16,7 +16,7 @@ and white.
 session cookies), photo uploads in Supabase Storage, and data in Supabase
 Postgres. The app is login-first — visitors land on the login page and sign
 up from there. Assign roles from the backend with
-`npm run set-role -- <handle> <member|council|zealot>`.
+`npm run set-role -- <username> <member|council|zealot>`.
 
 ## Tech stack
 
@@ -42,7 +42,7 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `npm run build` | Production build                |
 | `npm run start` | Serve the production build      |
 | `npm run lint`  | Run ESLint                      |
-| `npm run set-role -- <handle> <role>` | Assign `member`/`council`/`zealot` |
+| `npm run set-role -- <username> <role>` | Assign `member`/`council`/`zealot` |
 
 ## Setup & deploying
 

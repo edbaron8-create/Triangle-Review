@@ -22,8 +22,7 @@ import type {
 
 export interface UserRow {
   id: string;
-  handle: string;
-  name: string;
+  username: string;
   bio: string;
   role: TrianglerRole;
   avatar_hue: number;
@@ -64,8 +63,7 @@ const REVIEW_SELECT = "*, author:users!author_id(role)";
 export function rowToTriangler(row: UserRow): Triangler {
   return {
     id: row.id,
-    handle: row.handle,
-    name: row.name,
+    username: row.username,
     bio: row.bio,
     role: row.role,
     avatarHue: row.avatar_hue,
@@ -125,13 +123,13 @@ export async function getTrianglerById(id: string): Promise<Triangler | undefine
   return data ? rowToTriangler(data as UserRow) : undefined;
 }
 
-export async function getTrianglerByHandle(
-  handle: string,
+export async function getTrianglerByUsername(
+  username: string,
 ): Promise<Triangler | undefined> {
   const { data, error } = await supabase()
     .from("users")
     .select("*")
-    .eq("handle", handle.trim().toLowerCase())
+    .eq("username", username.trim().toLowerCase())
     .maybeSingle();
   check(error);
   return data ? rowToTriangler(data as UserRow) : undefined;
@@ -259,7 +257,6 @@ export async function createTriangle(input: {
   imageUrl: string;
   authorId: string;
   ratings: Ratings;
-  comment: string;
 }): Promise<Triangle> {
   const id = `t-${randomUUID()}`;
   const { error } = await supabase().from("triangles").insert({
@@ -275,7 +272,7 @@ export async function createTriangle(input: {
   await upsertReview(id, input.authorId, {
     ratings: input.ratings,
     zealotScore: 0,
-    comment: input.comment,
+    comment: "",
   });
   return (await getTriangleById(id))!;
 }
@@ -396,8 +393,9 @@ export async function search(query: string): Promise<{
   const users = await supabase()
     .from("users")
     .select("*")
-    .or(`handle.ilike.${pat},name.ilike.${pat}`)
-    .order("handle")
+    // .ilike() takes the raw pattern (no .or()-style quote wrapping).
+    .ilike("username", `%${safe}%`)
+    .order("username")
     .limit(20);
   check(users.error);
 

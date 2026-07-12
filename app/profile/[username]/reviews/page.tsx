@@ -6,8 +6,8 @@ import TrianglePhoto from "@/components/TrianglePhoto";
 import { requireUser } from "@/lib/auth";
 import {
   getReviewsBy,
-  getTrianglerByHandle,
   getTrianglerById,
+  getTrianglerByUsername,
   reviewTotal,
 } from "@/lib/data";
 import { formatScore, timeAgo } from "@/lib/format";
@@ -16,20 +16,20 @@ import { RATING_AXES } from "@/lib/types";
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ handle: string }>;
+  params: Promise<{ username: string }>;
 }): Promise<Metadata> {
-  const { handle } = await params;
-  return { title: `@${handle} scores · Triangle Reviewer` };
+  const { username } = await params;
+  return { title: `@${username} scores · Triangle Reviewer` };
 }
 
 export default async function ProfileReviewsPage({
   params,
 }: {
-  params: Promise<{ handle: string }>;
+  params: Promise<{ username: string }>;
 }) {
-  const { handle } = await params;
+  const { username } = await params;
   await requireUser();
-  const user = await getTrianglerByHandle(handle);
+  const user = await getTrianglerByUsername(username);
   if (!user) notFound();
 
   const reviews = await getReviewsBy(user.id);
@@ -47,7 +47,7 @@ export default async function ProfileReviewsPage({
       <ProfileHeader user={user} activeTab="reviewed" />
       {reviews.length === 0 ? (
         <p className="m-4 rounded-2xl border border-dashed border-gray-300 p-10 text-center text-sm text-gray-500">
-          @{user.handle} hasn&apos;t scored any triangles yet.
+          @{user.username} hasn&apos;t scored any triangles yet.
         </p>
       ) : (
         <ul className="space-y-3 px-4 py-4">
@@ -82,7 +82,7 @@ export default async function ProfileReviewsPage({
                     </span>
                   </div>
                   <p className="text-xs text-gray-400">
-                    by {poster ? `@${poster.handle}` : "unknown"} ·{" "}
+                    by {poster ? `@${poster.username}` : "unknown"} ·{" "}
                     {timeAgo(review.createdAt)}
                   </p>
                   <p className="text-xs text-gray-500">

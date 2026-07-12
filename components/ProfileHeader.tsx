@@ -43,7 +43,7 @@ export default async function ProfileHeader({
           <Avatar user={user} size="xl" ring />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-lg font-bold">{user.handle}</h1>
+              <h1 className="truncate text-lg font-bold">{user.username}</h1>
               <RoleBadge role={user.role} />
             </div>
             <ul className="mt-2 flex gap-4 text-sm">
@@ -58,7 +58,6 @@ export default async function ProfileHeader({
         </div>
 
         <div>
-          <p className="text-sm font-semibold">{user.name}</p>
           {user.bio && <p className="text-sm text-gray-600">{user.bio}</p>}
           <p className="mt-1 text-xs text-gray-400">
             Triangling since{" "}
@@ -75,7 +74,7 @@ export default async function ProfileHeader({
               type="submit"
               className="w-full rounded-lg bg-gray-100 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-200"
             >
-              Log out (@{user.handle})
+              Log out (@{user.username})
             </button>
           </form>
         ) : me ? (
@@ -89,14 +88,14 @@ export default async function ProfileHeader({
             href="/login"
             className="block w-full rounded-lg bg-army-700 py-1.5 text-center text-xs font-semibold text-white transition hover:bg-army-800"
           >
-            Log in to follow @{user.handle}
+            Log in to follow @{user.username}
           </Link>
         )}
       </header>
 
       <nav className="mt-4 flex border-t border-gray-200">
         <Link
-          href={`/profile/${user.handle}`}
+          href={`/profile/${user.username}`}
           className={`${tabBase} ${
             activeTab === "posted"
               ? "-mt-px border-army-700 text-army-800"
@@ -106,7 +105,7 @@ export default async function ProfileHeader({
           <span aria-hidden>▦</span> Posted
         </Link>
         <Link
-          href={`/profile/${user.handle}/reviews`}
+          href={`/profile/${user.username}/reviews`}
           className={`${tabBase} ${
             activeTab === "reviewed"
               ? "-mt-px border-army-700 text-army-800"

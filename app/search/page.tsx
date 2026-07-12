@@ -52,16 +52,13 @@ export default async function SearchPage({
             {results.trianglers.map((user) => (
               <li key={user.id}>
                 <Link
-                  href={`/profile/${user.handle}`}
+                  href={`/profile/${user.username}`}
                   className="flex items-center gap-3 rounded-xl px-1 py-2 transition hover:bg-gray-50"
                 >
                   <Avatar user={user} size="md" />
                   <span className="min-w-0 flex-1 leading-tight">
                     <span className="flex items-center gap-1.5 truncate text-sm font-semibold">
-                      {user.handle} <RoleBadge role={user.role} compact />
-                    </span>
-                    <span className="block truncate text-xs text-gray-500">
-                      {user.name}
+                      {user.username} <RoleBadge role={user.role} compact />
                     </span>
                   </span>
                 </Link>

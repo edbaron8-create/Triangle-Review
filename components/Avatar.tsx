@@ -47,7 +47,7 @@ export default function Avatar({
         style={{ backgroundImage: `linear-gradient(135deg, ${from}, ${to})` }}
         aria-hidden
       >
-        {user.handle[0]}
+        {user.username[0]}
       </span>
       {user.role !== "member" && (
         <span

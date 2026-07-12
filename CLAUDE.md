@@ -30,9 +30,9 @@ Triangles" and highlighted to everyone.
   4. **Zealot** — the Zealot's verdict, /10.
   Computed by `scoreOf()` in `lib/data.ts`. Drives ranking.
 - **Triangle Council** — a chosen group of members, assigned on the backend:
-  `npm run set-role -- <handle> council`. ▲ badge.
+  `npm run set-role -- <username> council`. ▲ badge.
 - **Triangle Zealot** — ONE member chosen on the backend:
-  `npm run set-role -- <handle> zealot` (auto-demotes the previous Zealot).
+  `npm run set-role -- <username> zealot` (auto-demotes the previous Zealot).
   ✦ badge. Scores triangles with a single criteria-free number.
 - **Top Triangles** — the highest-scoring Triangles, ranked on the Explore
   page and woven into feeds as suggestions.
@@ -86,7 +86,7 @@ app/                    Next.js App Router routes
   explore/              Top Triangles leaderboard grid (/100 ranking)
   search/               Search results (?q=) for triangles + Trianglers
   triangles/[id]/       Single triangle detail, score breakdown, score form
-  profile/[handle]/     Profile: masthead + posted-triangles grid
+  profile/[username]/   Profile: masthead + posted-triangles grid
     reviews/            Profile: triangles this user has scored
   login/  signup/       Auth pages (server-action forms)
   upload/               New-post form: photo, details, uploader score
@@ -134,7 +134,7 @@ npm run dev       # start dev server at http://localhost:3000
 npm run build     # production build
 npm run start     # serve the production build
 npm run lint      # run ESLint
-npm run set-role -- <handle> <member|council|zealot>   # backend role admin
+npm run set-role -- <username> <member|council|zealot>   # backend role admin
 ```
 
 ## Roadmap (next real features)

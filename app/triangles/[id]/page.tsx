@@ -56,13 +56,13 @@ export default async function TrianglePage({
       <header className="flex items-center gap-3 px-4 py-2.5">
         {author && (
           <>
-            <Link href={`/profile/${author.handle}`}>
+            <Link href={`/profile/${author.username}`}>
               <Avatar user={author} size="sm" />
             </Link>
             <div className="min-w-0 flex-1 leading-tight">
               <p className="flex items-center gap-1.5 text-sm font-semibold">
-                <Link href={`/profile/${author.handle}`} className="hover:underline">
-                  {author.handle}
+                <Link href={`/profile/${author.username}`} className="hover:underline">
+                  {author.username}
                 </Link>
                 <RoleBadge role={author.role} compact />
               </p>
@@ -126,7 +126,7 @@ export default async function TrianglePage({
                   <li key={review.id} className="rounded-2xl border border-gray-200 p-3.5">
                     <div className="flex items-center gap-3">
                       {reviewer && (
-                        <Link href={`/profile/${reviewer.handle}`} className="shrink-0">
+                        <Link href={`/profile/${reviewer.username}`} className="shrink-0">
                           <Avatar user={reviewer} size="sm" />
                         </Link>
                       )}
@@ -134,10 +134,10 @@ export default async function TrianglePage({
                         <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
                           {reviewer ? (
                             <Link
-                              href={`/profile/${reviewer.handle}`}
+                              href={`/profile/${reviewer.username}`}
                               className="hover:underline"
                             >
-                              {reviewer.handle}
+                              {reviewer.username}
                             </Link>
                           ) : (
                             "unknown"

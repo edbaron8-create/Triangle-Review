@@ -35,22 +35,14 @@ export default async function SignupPage({
 
       <form action={signUp} className="space-y-3">
         <input
-          name="handle"
+          name="username"
           required
           minLength={3}
           maxLength={20}
           pattern="[a-z0-9_]+"
           title="Lowercase letters, numbers, and underscores"
           autoComplete="username"
-          placeholder="handle (e.g. acute_alex)"
-          className={inputClass}
-        />
-        <input
-          name="name"
-          required
-          maxLength={50}
-          autoComplete="name"
-          placeholder="display name"
+          placeholder="username (e.g. acute_alex)"
           className={inputClass}
         />
         <input
