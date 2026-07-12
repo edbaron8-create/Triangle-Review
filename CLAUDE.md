@@ -17,13 +17,23 @@ Triangles" and highlighted to everyone.
 
 - **Triangle** — a single user-submitted post: a photo of a real-world
   triangle, plus a title, description, and location.
-- **Review** — a rating (1–5) and optional written comment left by a community
-  member on a Triangle.
-- **Score** — a Triangle's aggregate rating, derived from its Reviews. Drives
-  ranking.
-- **Top Triangles** — the highest-scoring Triangles, highlighted on the home
-  feed and a dedicated leaderboard.
-- **Triangler** — a user of the app (submitter and/or reviewer).
+- **Review** — three ratings left on a Triangle, each 0–10: **Aesthetic
+  Quality**, **Tacticality**, and **Triangularity** (30 points max), plus an
+  optional written comment. One review per Triangler per Triangle; reviewing
+  again edits your review. The uploader may review their own post.
+- **Triangle Council** — a small set of distinguished Trianglers whose
+  reviews carry extra weight. Council members get a ▲ badge everywhere.
+- **Score** — a Triangle's aggregate rating: the weighted average of its
+  Reviews, out of 30. Weights: Council ×3, community ×1, uploader
+  self-review ×0.5. Drives ranking. Computed by `scoreOf()` in `lib/data.ts`.
+- **Top Triangles** — the highest-scoring Triangles, ranked on the Explore
+  page and woven into feeds as suggestions.
+- **Feed** — a Triangler's home timeline: posts from people they follow,
+  newest first, with top-scored Triangles from outside their circle
+  interleaved as suggestions.
+- **Triangler** — a user of the app (submitter and/or reviewer). Until auth
+  lands, everyone browses as the mock signed-in user (`CURRENT_USER_ID` in
+  `lib/data.ts`).
 
 ## Tech stack
 
@@ -41,14 +51,24 @@ Triangles" and highlighted to everyone.
 
 ```
 app/                    Next.js App Router routes
-  layout.tsx            Root layout (fonts, global chrome)
-  page.tsx              Home feed + Top Triangles highlight
+  layout.tsx            Root layout (top nav, global chrome)
+  page.tsx              Home feed (following + suggested) + sidebar
   globals.css           Tailwind directives + base styles
-  triangles/[id]/       Single triangle detail + its reviews
+  explore/              Top Triangles leaderboard grid
+  triangles/[id]/       Single triangle detail, reviews, review form
+  profile/[handle]/     Profile: masthead + posted-triangles grid
+    reviews/            Profile: triangles this user has reviewed
+  upload/               Placeholder until real photo uploads land
 lib/
-  types.ts              Shared domain types (Triangle, Review, ...)
-  data.ts               Mock data + accessor helpers (swap for a DB later)
-components/             Reusable UI (TriangleCard, ScoreBadge, ...)
+  types.ts              Shared domain types (Triangle, Review, Triangler, ...)
+  data.ts               Mock data + accessor helpers (swap for a DB later);
+                        the mutable store lives on globalThis so server
+                        actions and routes share one instance in production
+  actions.ts            Server actions (submit/edit review, follow/unfollow)
+  format.ts             Formatting helpers (timeAgo, formatScore)
+components/             Reusable UI (TriangleCard, TriangleTile, ScoreBadge,
+                        RatingBreakdown, ReviewForm, Avatar, ProfileHeader,
+                        TriangleImage = inline-SVG mock "photos", ...)
 public/                 Static assets
 ```
 
@@ -81,8 +101,11 @@ npm run lint      # run ESLint
 
 1. **Persistence** — replace `lib/data.ts` fixtures with a real database
    (e.g. Postgres via Prisma). Keep the same helper signatures.
-2. **Auth** — sign-in so Trianglers can post and review as themselves.
-3. **Photo uploads** — real image storage (object store) instead of mock URLs.
-4. **Reviews write path** — form + server action to submit ratings/comments and
-   recompute Score.
-5. **Ranking** — real Top Triangles leaderboard (score, recency, volume).
+2. **Auth** — sign-in so Trianglers can post and review as themselves
+   (replaces the mock `CURRENT_USER_ID`).
+3. **Photo uploads** — real image storage (object store) instead of the
+   inline-SVG mock scenes in `TriangleImage`.
+4. **Ranking v2** — factor recency and review volume into Top Triangles,
+   not just weighted score.
+5. **Council management** — how Trianglers get promoted to (and removed
+   from) the Triangle Council.
